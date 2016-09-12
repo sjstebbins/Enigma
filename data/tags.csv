@@ -1,0 +1,217 @@
+Boosted Classification Trees ,ada
+Bagged AdaBoost ,AdaBag
+AdaBoost.M1 ,AdaBoost.M1
+AdaBoost Classification Trees ,adaboost
+Adaptive Mixture Discriminant Analysis ,amdai
+Adaptive-Network-Based Fuzzy Inference System ,ANFIS
+Model Averaged Neural Network ,avMxnet
+Model Averaged Neural Network ,avNNet
+Naive Bayes Classifier with Attribute Weighting ,awnb
+Tree Augmented Naive Bayes Classifier with Attribute Weighting ,awtan
+Bagged Model ,bag
+Bagged MARS ,bagEarth
+Bagged MARS using gCV Pruning ,bagEarthGCV
+Bagged Flexible Discriminant Analysis ,bagFDA
+Bagged FDA using gCV Pruning ,bagFDAGCV
+Bayesian Additive Regression Trees ,bartMachine
+Bayesian Generalized Linear Model ,bayesglm
+Self-Organizing Map ,bdk
+Binary Discriminant Analysis ,binda
+Boosted Tree ,blackboost
+The Bayesian lasso ,blasso
+Bayesian Ridge Regression  ,blassoAveraged
+Random Forest with Additional Feature Selection ,Boruta
+Bayesian Ridge Regression ,bridge
+Bayesian Regularized Neural Networks ,brnn
+Boosted Linear Model ,BstLm
+Boosted Smoothing Spline ,bstSm
+Boosted Tree ,bstTree
+C5.0 ,C5.0
+Cost-Sensitive C5.0 ,C5.0Cost
+Single C5.0 Ruleset ,C5.0Rules
+Single C5.0 Tree ,C5.0Tree
+Conditional Inference Random Forest ,cforest
+CHi-squared Automated Interaction Detection ,chaid
+SIMCA ,CSimca
+Conditional Inference Tree ,ctree
+Conditional Inference Tree ,ctree2
+Cubist ,cubist
+DeepBoost ,deepboost
+Dynamic Evolving Neural-Fuzzy Inference System  ,DENFIS
+Stacked AutoEncoder Deep Neural Network ,dnn
+Linear Distance Weighted Discrimination ,dwdLinear
+Distance Weighted Discrimination with Polynomial Kernel ,dwdPoly
+Distance Weighted Discrimination with Radial Basis Function Kernel ,dwdRadial
+Multivariate Adaptive Regression Spline ,earth
+Extreme Learning Machine ,elm
+Elasticnet ,enet
+Ensemble Partial Least Squares Regression with Feature Selection ,enpls.fs
+Ensemble Partial Least Squares Regression ,enpls
+Tree Models from Genetic Algorithms ,evtree
+Random Forest by Randomization ,extraTrees
+Flexible Discriminant Analysis ,fda
+Fuzzy Rules Using Genetic Cooperative-Competitive Learning and Pittsburgh ,FH.GBML
+Fuzzy Inference Rules by Descent Method ,FIR.DM
+Ridge Regression with Variable Selection ,foba
+Fuzzy Rules Using Chi's Method ,FRBCS.CHI
+Fuzzy Rules with Weight Factor ,FRBCS.W
+Simplified TSK Fuzzy Rules ,FS.HGD
+Generalized Additive Model using Splines ,gam
+Boosted Generalized Additive Model ,gamboost
+Generalized Additive Model using LOESS ,gamLoess
+Generalized Additive Model using Splines ,gamSpline
+Gaussian Process ,gaussprLinear
+Gaussian Process with Polynomial Kernel ,gaussprPoly
+Gaussian Process with Radial Basis Function Kernel ,gaussprRadial
+Stochastic Gradient Boosting ,gbm
+Multivariate Adaptive Regression Splines ,gcvEarth
+Fuzzy Rules via MOGUL ,GFS.FR.MOGUL
+Fuzzy Rules Using Genetic Cooperative-Competitive Learning ,GFS.GCCL
+Genetic Lateral Tuning and Rule Selection of Linguistic Fuzzy Systems ,GFS.LT.RS
+Fuzzy Rules via Thrift ,GFS.THRIFT
+Generalized Linear Model ,glm
+Boosted Generalized Linear Model ,glmboost
+glmnet ,glmnet
+Generalized Linear Model with Stepwise Feature Selection ,glmStepAIC
+Generalized Partial Least Squares ,gpls
+Heteroscedastic Discriminant Analysis ,hda
+High Dimensional Discriminant Analysis ,hdda
+Hybrid Neural Fuzzy Inference System ,HYFIS
+Independent Component Regression ,icr
+C4.5-like Trees ,J48
+Rule-Based Classifier ,JRip
+Partial Least Squares ,kernelpls
+k-Nearest Neighbors ,kknn
+k-Nearest Neighbors ,knn
+Polynomial Kernel Regularized Least Squares ,krlsPoly
+Radial Basis Function Kernel Regularized Least Squares ,krlsRadial
+Least Angle Regression ,lars
+Least Angle Regression ,lars2
+The lasso ,lasso
+Linear Discriminant Analysis ,lda
+Linear Discriminant Analysis ,lda2
+Linear Regression with Backwards Selection ,leapBackward
+Linear Regression with Forward Selection ,leapForward
+Linear Regression with Stepwise Selection ,leapSeq
+Robust Linear Discriminant Analysis ,Linda
+Linear Regression ,lm
+Linear Regression with Stepwise Selection ,lmStepAIC
+Logistic Model Trees ,LMT
+Localized Linear Discriminant Analysis ,loclda
+Bagged Logic Regression ,logicBag
+Boosted Logistic Regression ,LogitBoost
+Logic Regression ,logreg
+Least Squares Support Vector Machine ,lssvmLinear
+Least Squares Support Vector Machine with Polynomial Kernel ,lssvmPoly
+Least Squares Support Vector Machine with Radial Basis Function Kernel ,lssvmRadial
+Learning Vector Quantization ,lvq
+Model Tree ,M5
+Model Rules ,M5Rules
+Model Averaged Naive Bayes Classifier ,manb
+Mixture Discriminant Analysis ,mda
+Maximum Uncertainty Linear Discriminant Analysis ,Mlda
+Multi-Layer Perceptron ,mlp
+"Multi-Layer Perceptron, with multiple layers ",mlpML
+Multi-Layer Perceptron ,mlpWeightDecay
+"Multi-Layer Perceptron, multiple layers ",mlpWeightDecayML
+Penalized Multinomial Regression ,multinom
+Naive Bayes ,nb
+Naive Bayes Classifier ,nbDiscrete
+Semi-Naive Structure Learner Wrapper ,nbSearch
+Neural Network ,neuralnet
+Neural Network ,nnet
+Non-Negative Least Squares ,nnls
+Tree-Based Ensembles ,nodeHarvest
+Oblique Trees ,oblique.tree
+Single Rule Classification ,OneR
+Oblique Random Forest ,ORFlog
+Oblique Random Forest ,ORFpls
+Oblique Random Forest ,ORFridge
+Oblique Random Forest ,ORFsvm
+Optimal Weighted Nearest Neighbor Classifier ,ownn
+Nearest Shrunken Centroids ,pam
+Parallel Random Forest ,parRF
+Rule-Based Classifier ,PART
+partDSA ,partDSA
+Neural Networks with Feature Extraction ,pcaNNet
+Principal Component Analysis ,pcr
+Penalized Discriminant Analysis ,pda
+Penalized Discriminant Analysis ,pda2
+Penalized Linear Regression ,penalized
+Penalized Linear Discriminant Analysis ,PenalizedLDA
+Penalized Logistic Regression ,plr
+Partial Least Squares ,pls
+Partial Least Squares Generalized Linear Models  ,plsRglm
+Ordered Logistic or Probit Regression ,polr
+Projection Pursuit Regression ,ppr
+Greedy Prototype Selection ,protoclass
+Knn regression via sklearn.neighbors.KNeighborsRegressor ,pythonKnnReg
+Quadratic Discriminant Analysis ,qda
+Robust Quadratic Discriminant Analysis ,QdaCov
+Quantile Random Forest ,qrf
+Quantile Regression Neural Network ,qrnn
+Ensembles of Generalized Lienar Models ,randomGLM
+Random Forest ,ranger
+Radial Basis Function Network ,rbf
+Radial Basis Function Network ,rbfDDA
+Regularized Discriminant Analysis ,rda
+Relaxed Lasso ,relaxo
+Random Forest ,rf
+Random Ferns ,rFerns
+Factor-Based Linear Discriminant Analysis ,RFlda
+Random Forest Rule-Based Model ,rfRules
+Ridge Regression ,ridge
+Robust Linear Model ,rlm
+Robust Mixture Discriminant Analysis ,rmda
+ROC-Based Classifier ,rocc
+Rotation Forest ,rotationForest
+Rotation Forest ,rotationForestCp
+CART ,rpart
+CART ,rpart1SE
+CART ,rpart2
+Cost-Sensitive CART ,rpartCost
+Quantile Regression with LASSO penalty ,rqlasso
+Non-Convex Penalized Quantile Regression ,rqnc
+Regularized Random Forest ,RRF
+Regularized Random Forest ,RRFglobal
+Robust Regularized Linear Discriminant Analysis ,rrlda
+Robust SIMCA ,RSimca
+Relevance Vector Machines with Linear Kernel ,rvmLinear
+Relevance Vector Machines with Polynomial Kernel ,rvmPoly
+Relevance Vector Machines with Radial Basis Function Kernel ,rvmRadial
+Subtractive Clustering and Fuzzy c-Means Rules ,SBC
+Shrinkage Discriminant Analysis ,sda
+Stepwise Diagonal Linear Discriminant Analysis ,sddaLDA
+Stepwise Diagonal Quadratic Discriminant Analysis ,sddaQDA
+Sparse Distance Weighted Discrimination ,sdwd
+Partial Least Squares ,simpls
+Fuzzy Rules Using the Structural Learning Algorithm on Vague Environment ,SLAVE
+Stabilized Linear Discriminant Analysis ,slda
+Sparse Mixture Discriminant Analysis ,smda
+Stabilized Nearest Neighbor Classifier ,snn
+Sparse Linear Discriminant Analysis ,sparseLDA
+Spike and Slab Regression ,spikeslab
+Sparse Partial Least Squares ,spls
+Linear Discriminant Analysis with Stepwise Feature Selection ,stepLDA
+Quadratic Discriminant Analysis with Stepwise Feature Selection ,stepQDA
+Supervised Principal Component Analysis ,superpc
+Support Vector Machines with Boundrange String Kernel ,svmBoundrangeString
+Support Vector Machines with Exponential String Kernel ,svmExpoString
+Support Vector Machines with Linear Kernel ,svmLinear
+Support Vector Machines with Linear Kernel ,svmLinear2
+Support Vector Machines with Polynomial Kernel ,svmPoly
+Support Vector Machines with Radial Basis Function Kernel ,svmRadial
+Support Vector Machines with Radial Basis Function Kernel ,svmRadialCost
+Support Vector Machines with Radial Basis Function Kernel ,svmRadialSigma
+Support Vector Machines with Class Weights ,svmRadialWeights
+Support Vector Machines with Spectrum String Kernel ,svmSpectrumString
+Tree Augmented Naive Bayes Classifier ,tan
+Tree Augmented Naive Bayes Classifier Structure Learner Wrapper ,tanSearch
+Bagged CART ,treebag
+Variational Bayesian Multinomial Probit Regression ,vbmpRadial
+Partial Least Squares ,widekernelpls
+Wang and Mendel Fuzzy Rules ,WM
+Weighted Subspace Random Forest ,wsrf
+eXtreme Gradient Boosting ,xgbLinear
+eXtreme Gradient Boosting ,xgbTree
+Self-Organizing Maps ,xyf
