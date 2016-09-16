@@ -15,7 +15,8 @@ import FontIcon from 'material-ui/FontIcon'
 // custom components
 import LongDropDownMenu from './dropdown.js'
 import DataTable from './datatable.js'
-
+import MultiDropDown from './multidropdown.js'
+import SelectionTable from './selectiontable.js'
 
 /**
  * A contrived example using a transition between steps
@@ -43,12 +44,17 @@ class ProgressStepper extends React.Component {
         stepIndex: 0,
       }
   }
-  handleNext = () => {
+  handleNext = (selection, onClickFunction) => {
     const {stepIndex} = this.state;
     this.setState({
       stepIndex: stepIndex + 1,
-      finished: stepIndex >= 2,
+      finished: stepIndex >= 4,
     });
+    var args = null
+    if (selection == 'selectedModels') {
+      args = this.props['selectedColumn']
+    }
+    onClickFunction(this.props[selection], args)
   };
 
   handlePrev = (selection) => {
@@ -58,16 +64,16 @@ class ProgressStepper extends React.Component {
       this.setState({stepIndex: stepIndex - 1});
     }
   };
-  renderStepActions(step, hold, selection) {
+  renderStepActions(step, hold, selection, onClickFunction) {
     const {stepIndex} = this.state;
 
     return (
       <div style={{margin: '12px 0', color: 'white'}}>
         <RaisedButton
-          label={stepIndex === 2 ? 'Finish' : 'Next'}
+          label={stepIndex === 4 ? 'Finish' : 'Next'}
           disabled={hold}
           primary={true}
-          onTouchTap={this.handleNext}
+          onTouchTap={this.handleNext.bind(this, selection, onClickFunction)}
           style={{marginRight: 12}}
         />
         {step > 0 && (
@@ -88,9 +94,30 @@ class ProgressStepper extends React.Component {
   // <DataTable
   //   items={this.props.columns}
   //   selectedDataset={this.props.selectedDataset}/>
+
+  // <Step>
+  //   <StepLabel style={{color: this.state.stepIndex > 1 ? 'rgb(0, 188, 212)' : 'lightgrey'}}>Clean Data</StepLabel>
+  //   <StepContent>
+  //     <p>
+  //     </p>
+  //     <LongDropDownMenu
+  //       items={this.props.suggestedModels.sort()}
+  //       _setAppState={this.props._setAppState}
+  //       selectedValue={this.props.selectedModel}
+  //       selectionName='selectedModel'/>
+  //     {this.renderStepActions(2, (this.props.selectedModel == null ? true : false), 'selectedModel', this.props._runSelectedModels)}
+  //   </StepContent>
+  // </Step>
   render() {
     const {finished, stepIndex} = this.state;
 
+
+    // <LongDropDownMenu
+    //   items={this.props.suggestedModels.sort()}
+    //   _setAppState={this.props._setAppState}
+    //   selectedValue={this.props.selectedModel}
+    //   selectionName='selectedModel'
+    //   checkboxes={true}/>
     return (
       <div style={{
           maxWidth: 300,
@@ -110,11 +137,11 @@ class ProgressStepper extends React.Component {
                 items={this.props.sampleDatasets.sort()}
                 _setAppState={this.props._setAppState}
                 selectedValue={this.props.selectedDataset}
-                selectionName='selectedDataset'
-                selectionFunction={this.props._getSampleData}/>
-              {this.renderStepActions(0, (this.props.selectedDataset == null ? true : false), 'selectedDataset')}
+                selectionName='selectedDataset'/>
+              {this.renderStepActions(0, (this.props.selectedDataset == null ? true : false), 'selectedDataset', this.props._getSampleData)}
             </StepContent>
           </Step>
+
           <Step>
             <StepLabel style={{color: this.state.stepIndex > 0 ? 'rgb(0, 188, 212)' : 'lightgrey'}}>Select Target: {this.props.selectedColumn}</StepLabel>
             <StepContent>
@@ -123,26 +150,35 @@ class ProgressStepper extends React.Component {
                 items={this.props.columns}
                 _setAppState={this.props._setAppState}
                 selectedValue={this.props.selectedColumn}
-                selectionName='selectedColumn'
-                selectionFunction={this.props._getModels}  />
-              {this.renderStepActions(1, (this.props.selectedColumn == null ? true : false), 'selectedColumn')}
+                selectionName='selectedColumn'/>
+              {this.renderStepActions(1, (this.props.selectedColumn == null ? true : false), 'selectedColumn',this.props._getSuggestedModels)}
             </StepContent>
           </Step>
           <Step>
-            <StepLabel style={{color: this.state.stepIndex > 1 ? 'rgb(0, 188, 212)' : 'lightgrey'}}>Select Model</StepLabel>
+            <StepLabel style={{color: this.state.stepIndex > 1 ? 'rgb(0, 188, 212)' : 'lightgrey'}}>Try Models: {this.props.selectedModels.length < 2 ? this.props.selectedModels[0]: this.props.selectedModels.length.toString() + ' Models'} </StepLabel>
             <StepContent>
               <p>
-                You have selected ___ and thus are performing a ___ prediction. Please select an initial model based on these parameters.
+                Prediction column requires <span style={{color: 'rgba(255, 0, 255, 1)'}}>{this.props.predictionType}.</span> Data is __ distributed.
+                There are <span style={{color: 'rgba(255, 0, 255, 1)'}}>{this.props.observationCount}</span> observations. Please select an suggested model based on these parameters.
               </p>
-              <LongDropDownMenu
-                items={this.props.models.sort()}
+              <MultiDropDown
                 _setAppState={this.props._setAppState}
-                selectedValue={this.props.selectedModel}
-                selectionName='selectedModel'
-                selectionFunction={this.props._getModels}  />
-              {this.renderStepActions(2, (this.props.selectedModel == null ? true : false), 'selectedModel')}
+                _updateAppState={this.props._updateAppState}
+                items={this.props.suggestedModels.sort()}
+                selectionName='selectedModels'
+                selections={this.props.selectedModels}/>
+              {this.renderStepActions(2, (this.props.selectedModels.length == 0 ? true : false), 'selectedModels', this.props._runSelectedModels)}
             </StepContent>
           </Step>
+          <Step>
+            <StepLabel style={{color: this.state.stepIndex > 2 ? 'rgb(0, 188, 212)' : 'lightgrey'}}>Select Model</StepLabel>
+            <StepContent>
+              <SelectionTable
+                items={this.props.selectedModels}/>
+              {this.renderStepActions(3, (this.props.selectedModel == null ? true : false), '' , this.props._getPredictions)}
+            </StepContent>
+          </Step>
+
         </Stepper>
         {finished && (
           <p style={{margin: '20px 0', textAlign: 'center'}}>
@@ -165,3 +201,32 @@ class ProgressStepper extends React.Component {
 }
 
 export default ProgressStepper;
+
+// <Step>
+//   <StepLabel style={{color: this.state.stepIndex > 1 ? 'rgb(0, 188, 212)' : 'lightgrey'}}>Create Ensemble</StepLabel>
+//   <StepContent>
+//     <p>
+//     </p>
+//     <LongDropDownMenu
+//       items={this.props.suggestedModels.sort()}
+//       _setAppState={this.props._setAppState}
+//       selectedValue={this.props.selectedModel}
+//       selectionName='selectedModel'/>
+//     {this.renderStepActions(4, (this.props.selectedModel == null ? true : false), 'selectedModel', this.props._runSelectedModels)}
+//   </StepContent>
+// </Step>
+// <Step>
+//   <StepLabel style={{color: this.state.stepIndex > 1 ? 'rgb(0, 188, 212)' : 'lightgrey'}}>Predict New Observations</StepLabel>
+//   <StepContent>
+//     <p>
+//       Prediction column requires <span style={{color: 'rgba(255, 0, 255, 1)'}}>{this.props.predictionType}.</span> Data is __ distributed.
+//       There are <span style={{color: 'rgba(255, 0, 255, 1)'}}>{this.props.observationCount}</span> observations. Please select an suggested model based on these parameters.
+//     </p>
+//     <LongDropDownMenu
+//       items={this.props.suggestedModels.sort()}
+//       _setAppState={this.props._setAppState}
+//       selectedValue={this.props.selectedModel}
+//       selectionName='selectedModel'/>
+//     {this.renderStepActions(5, (this.props.selectedModel == null ? true : false), 'selectedModel', this.props._runSelectedModels)}
+//   </StepContent>
+// </Step>

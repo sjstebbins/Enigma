@@ -18,10 +18,9 @@ export default class LongDropDownMenu extends React.Component {
       this.setState({value: this.props.items.indexOf(nextProps.selectedValue)})
     }
   }
-  handleChange = (event, index, value) => {
-    this.setState({value});
-    this.props._setAppState({[this.props.selectionName]: this.props.items[value]})
-    this.props.selectionFunction(this.props.items[value])
+  selectItem = (i, item) => {
+    this.setState({value: i});
+    this.props._setAppState({[this.props.selectionName]: this.props.items[item]})
   }
   render() {
     String.prototype.trunc = String.prototype.trunc || function(n){
@@ -31,13 +30,13 @@ export default class LongDropDownMenu extends React.Component {
       <DropDownMenu
         maxHeight={300}
         value={this.state.value}
-        onChange={this.handleChange}
+        onChange={this.selectItem}
         underlineStyle={{marginLeft: 0}}
         labelStyle={{paddingLeft: 0, color: 'lightblue'}}>
-        {this.props.items.map( (item, i) => (
-          <MenuItem value={i} key={i} primaryText={item} label={item.trunc(25)}/>
-        ))}
-      </DropDownMenu>
+            {this.props.items.map( (item, i) => (
+              <MenuItem value={i} key={i} primaryText={item} label={item.trunc(25)}/>
+            ))}
+        </DropDownMenu>
     );
   }
 }

@@ -75,7 +75,8 @@ var Menu = React.createClass({
                 style={{
                     margin: 0,
                     backgroundColor: 'rgba(0,0,0,0)',
-                    position: 'fixed'
+                    position: 'fixed',
+                    boxShadow: 'none'
                 }}>
                 <Drawer
                   docked={false}

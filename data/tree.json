@@ -1,0 +1,30 @@
+{
+  "Supervised": {
+    "Regression":{
+
+    },
+    "Classification": {
+      "":{
+
+      },
+      "Linear Classifier": {
+        "Linear SVC":{
+          "Text Data": {
+            "Bayesian": {
+
+            },
+            "KNN": {
+
+            }
+          }
+        },
+        "SGD Classifier": {
+
+        }
+      }
+    }
+  },
+  "Unsupervised": {
+
+  }
+}

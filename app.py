@@ -19,7 +19,9 @@ import pandas
 import rpy2.robjects as ro
 from rpy2.robjects import Formula
 from rpy2.robjects.packages import importr
+from rpy2.robjects import pandas2ri
 import pandas.rpy.common as com
+pandas2ri.activate()
 import rpy2.interactive as r
 import rpy2.interactive.packages
 importr('datasets')
@@ -27,14 +29,15 @@ data = rpy2.interactive.packages.data
 rpackages = r.packages.packages
 
 # R function file
-# f = open('./app.R')
-# code = ''.join(f.readlines())
-# result = ro.r(code)
-# f.close()
+f = open('./app.R')
+code = ''.join(f.readlines())
+result = ro.r(code)
+f.close()
 
 #models
 models = pandas.read_csv('./data/tag_data.csv', sep=',')
 DATA = None;
+best_model = None;
 
 
 app = Flask(__name__)
@@ -66,26 +69,43 @@ def getSuggestedModels():
     value = str(request.args['value'])
     # filter to only show models appropriate (regression or classification) for prediction column type
     if DATA[value].dtype == 'object':
-        predictionCategory = 'Classification'
+        predictionType = 'Classification'
     else:
-        predictionCategory = 'Regression'
-    predictionModels = models.loc[models[predictionCategory] == 1]
+        predictionType = 'Regression'
+    predictionModels = models.loc[models[predictionType] == 1]
     suggestedModels = predictionModels['Model'].values.tolist()
-    return(json.dumps(suggestedModels))
+    response = {
+        'suggestedModels': suggestedModels,
+        'predictionType': predictionType,
+        'observationCount': len(DATA.index)
+    }
+    return(json.dumps(response, sort_keys=True))
 
-@app.route("/runSelectedModel")
-def runSelectedModel():
-    return(json.dumps(value))
+@app.route("/runSelectedModels")
+def runSelectedModels():
+    runModels = ro.r('runSelectedModels')
+    summary = runModels(pandas2ri.py2ri(DATA), request.args['models'], request.args['target'])
+    # print(com.convert_robj(summary))
+    print('-' * 100)
+    print(summary)
+    return(json.dumps(str(summary)))
 
-# @app.route("/getEnsembleSuggestions")
-# def getEnsembleSuggestions():
-#     getEnsembleSuggestions = ro.r('getEnsembleSuggestions')
-#     suggestions = getEnsembleSuggestions(request.args['value'])
-#     return(json.dumps(suggestions))
+@app.route("/getPredictions")
+def getPredictions():
+    getPredictions = ro.r('getPredictions')
+    predictions = getPredictions(DATA[30])
+    print(predictions)
+    return(json.dumps(str(predictions)))
+    @app.route("/getEnsembleSuggestions")
+    def getEnsembleSuggestions():
+        getEnsembleSuggestions = ro.r('getEnsembleSuggestions')
+        suggestions = getEnsembleSuggestions(request.args['value'])
+        return(json.dumps(str(suggestions)))
+
 
 # run server
 if __name__ == "__main__":
     server = Server(app.wsgi_app)
     # watch for changes on the bundle.js file in static
     server.watch('static/**')
-    server.serve()
+    server.serve(7777)

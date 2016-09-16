@@ -7,6 +7,7 @@ var injectTapEventPlugin = require("react-tap-event-plugin");
 injectTapEventPlugin();
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
+import CircularProgress from 'material-ui/CircularProgress';
 import $ from 'jquery'
 
 // Custom Components
@@ -14,19 +15,24 @@ import Menu from './components/Menu';
 import ProgressStepper from './components/progressstepper.js'
 import DataTable from './components/datatable.js'
 import NetworkGraph from './components/networkgraph.js'
+import InfoPane from './components/infopane.js'
 // import Network from './components/network.js'
 // Main app
 class App extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
+          loading: true,
           models: [],
-          filterdModels: [],
           sampleDatasets: [],
           selectedDataset: null,
           columns: [],
           selectedColumn: null,
-          selectedModel: null
+          observationCount: null,
+          predictionType: null,
+          suggestedModels: [],
+          selectedModels: [],
+          console: null
         }
     }
     componentWillMount () {
@@ -37,19 +43,36 @@ class App extends React.Component {
         return (
             <MuiThemeProvider muiTheme={getMuiTheme()}>
               <div>
+                {this.state.loading ?
+                  <div style={{position: 'fixed', top: 20, right: 30}}>
+                    <h4 style={{position: 'absolute', right: 20, width: 200, color: 'darkgrey'}}>
+                      Building Models...
+                    </h4>
+                    <CircularProgress style={{position: 'absolute', top: 0, right: 0}} mode="indeterminate" />
+                  </div>:
+                  <div/>
+                }
                 <Menu/>
                 <ProgressStepper
                   _setAppState={this._setAppState}
-                  sampleDatasets={this.state.sampleDatasets}
-                  selectedDataset={this.state.selectedDataset}
+                  _updateAppState={this._updateAppState}
                   _getSampleData={this._getSampleData}
-                  columns={this.state.columns}
-                  selectedColumn={this.state.selectedColumn}
                   _getSuggestedModels={this._getSuggestedModels}
+                  _runSelectedModels={this._runSelectedModels}
+                  _getPredictions={this._getPredictions}
+                  {...this.state}/>
+                {this.state.models.length > 0 ?
+                  <NetworkGraph
                   models={this.state.models}
-                  selectedModel={this.state.selectedModel}
-                  />
-                {this.state.models.length > 0 ? <NetworkGraph items={this.state.models}/> : <div/>}
+                  suggestedModels={this.state.suggestedModels}/> :
+                  <div/>
+                }
+                {this.state.console !== null ?
+                  <InfoPane
+                  console={this.state.console}
+                  setAppState={this._setAppState}/>:
+                  <div/>
+                }
               </div>
             </MuiThemeProvider>
         )
@@ -57,10 +80,21 @@ class App extends React.Component {
     componentDidUpdate (prevProps, prevState) {
     }
     componentDidMount () {
-
+      this._getEnsembleSuggestions('Regression')
+      this.setState({loading: false})
     }
     _setAppState = (obj) => {
       this.setState(obj)
+    }
+    _updateAppState = (selectionName, item) => {
+      var index = this.state[selectionName].indexOf(item)
+      if (index == -1) {
+        var state = update(this.state, {[selectionName]: {$push: [item]}})
+        this.setState(state)
+      } else {
+        var state =  update(this.state, {[selectionName]: {$splice: [[index, 1]]}})
+        this.setState(state)
+      }
     }
     _getModels () {
       $.ajax({
@@ -88,17 +122,43 @@ class App extends React.Component {
       })
     }
     _getSuggestedModels = (value) => {
-        if (value.Classification == 1) {
-            return value
+      $.ajax({
+        url:'/getSuggestedModels',
+        data: { value: value },
+        success: response => {
+            response = JSON.parse(response)
+            this.setState({observationCount: response.observationCount})
+            this.setState({predictionType: response.predictionType})
+            this.setState({suggestedModels: response.suggestedModels});
         }
+      })
     }
-      // $.ajax({
-      //   url:'/getSuggestedModels',
-      //   data: { value: value },
-      //   success: response => {
-      //       this.setState({models: JSON.parse(response)});
-      //   }
-      // })
+    _runSelectedModels = (models, target) => {
+      this.setState({loading: true})
+      this.setState({console: null})
+      $.ajax({
+        url:'/runSelectedModels',
+        data: {
+          models: models.join('&'),
+          target: target
+        },
+        success: response => {
+          console.log(JSON.parse(response))
+          this.setState({loading: false})
+          this.setState({console: JSON.parse(response)});
+        }
+      })
+    }
+    _getPredictions = (observations) => {
+      $.ajax({
+        url:'/getPredictions',
+        data: { observations: observations },
+        success: response => {
+            // this.setState({models: response});
+            console.log(JSON.parse(response))
+        }
+      })
+    }
     _getEnsembleSuggestions (value) {
       $.ajax({
         url:'/getEnsembleSuggestions',
