@@ -118,6 +118,10 @@
 	
 	var _componentsInfopaneJs2 = _interopRequireDefault(_componentsInfopaneJs);
 	
+	var _componentsSelectiontableJs = __webpack_require__(/*! ./components/selectiontable.js */ 463);
+	
+	var _componentsSelectiontableJs2 = _interopRequireDefault(_componentsSelectiontableJs);
+	
 	// import Network from './components/network.js'
 	// Main app
 	
@@ -169,6 +173,7 @@
 	          response = JSON.parse(response);
 	          _this.setState({ observationCount: response.observationCount });
 	          _this.setState({ predictionType: response.predictionType });
+	          _this.setState({ predictionClass: response.predictionClass });
 	          _this.setState({ suggestedModels: response.suggestedModels });
 	        }
 	      });
@@ -184,9 +189,49 @@
 	          target: target
 	        },
 	        success: function success(response) {
-	          console.log(JSON.parse(response));
+	          response = JSON.parse(response);
+	          var obj = _this.state;
+	          var newObj = update(obj, { table: { $set: JSON.parse(response) } });
+	          _this.setState(newObj);
 	          _this.setState({ loading: false });
-	          _this.setState({ console: JSON.parse(response) });
+	        }
+	      });
+	    };
+	
+	    this._getEnsembleSuggestions = function (model, target, type, output) {
+	      _this.setState({ loading: true });
+	      _jquery2['default'].ajax({
+	        url: '/getEnsembleSuggestions',
+	        data: {
+	          model: model.substr(model.indexOf('('), model.length),
+	          target: target,
+	          type: type,
+	          output: output
+	        },
+	        success: function success(response) {
+	          response = JSON.parse(response);
+	          var obj = _this.state;
+	          var newObj = update(obj, { correlation: { $set: JSON.parse(response) } });
+	          _this.setState(newObj);
+	          _this.setState({ loading: false });
+	        }
+	      });
+	    };
+	
+	    this._createStackedEnsemble = function (models) {
+	      _this.setState({ loading: true });
+	      _jquery2['default'].ajax({
+	        url: '/createStackedEnsemble',
+	        data: {
+	          models: models.length > 1 ? models.join('&') : models
+	        },
+	        success: function success(response) {
+	          response = JSON.parse(response);
+	          console.log(JSON.parse(response));
+	          var obj = _this.state;
+	          var newObj = update(obj, { stackedstats: { $set: JSON.parse(response) } });
+	          _this.setState(newObj);
+	          _this.setState({ loading: false });
 	        }
 	      });
 	    };
@@ -211,9 +256,14 @@
 	      selectedColumn: null,
 	      observationCount: null,
 	      predictionType: null,
+	      predictionClass: null,
 	      suggestedModels: [],
 	      selectedModels: [],
-	      console: null
+	      bestSeedModelTag: null,
+	      bestSeedModelScore: null,
+	      selectedSeedModel: null,
+	      suggestedEnsembleModels: [],
+	      selectedEnsembleModels: []
 	    };
 	  }
 	
@@ -223,6 +273,11 @@
 	      this._getSampleDatasets();
 	      this._getModels();
 	    }
+	
+	    // <InfoPane
+	    // console={this.state.console}
+	    // setAppState={this._setAppState}/>:
+	    // <div/>
 	  }, {
 	    key: 'render',
 	    value: function render() {
@@ -237,8 +292,8 @@
 	            { style: { position: 'fixed', top: 20, right: 30 } },
 	            _react2['default'].createElement(
 	              'h4',
-	              { style: { position: 'absolute', right: 20, width: 200, color: 'darkgrey' } },
-	              'Building Models...'
+	              { style: { position: 'absolute', right: 20, width: 150, color: 'darkgrey' } },
+	              'Loading...'
 	            ),
 	            _react2['default'].createElement(_materialUiCircularProgress2['default'], { style: { position: 'absolute', top: 0, right: 0 }, mode: 'indeterminate' })
 	          ) : _react2['default'].createElement('div', null),
@@ -249,14 +304,13 @@
 	            _getSampleData: this._getSampleData,
 	            _getSuggestedModels: this._getSuggestedModels,
 	            _runSelectedModels: this._runSelectedModels,
+	            _getEnsembleSuggestions: this._getEnsembleSuggestions,
+	            _createStackedEnsemble: this._createStackedEnsemble,
 	            _getPredictions: this._getPredictions
 	          }, this.state)),
 	          this.state.models.length > 0 ? _react2['default'].createElement(_componentsNetworkgraphJs2['default'], {
 	            models: this.state.models,
-	            suggestedModels: this.state.suggestedModels }) : _react2['default'].createElement('div', null),
-	          this.state.console !== null ? _react2['default'].createElement(_componentsInfopaneJs2['default'], {
-	            console: this.state.console,
-	            setAppState: this._setAppState }) : _react2['default'].createElement('div', null)
+	            suggestedModels: this.state.suggestedModels }) : _react2['default'].createElement('div', null)
 	        )
 	      );
 	    }
@@ -266,7 +320,6 @@
 	  }, {
 	    key: 'componentDidMount',
 	    value: function componentDidMount() {
-	      this._getEnsembleSuggestions('Regression');
 	      this.setState({ loading: false });
 	    }
 	  }, {
@@ -290,18 +343,6 @@
 	        url: '/getSampleDatasets',
 	        success: function success(response) {
 	          _this3.setState({ sampleDatasets: JSON.parse(response) });
-	        }
-	      });
-	    }
-	  }, {
-	    key: '_getEnsembleSuggestions',
-	    value: function _getEnsembleSuggestions(value) {
-	      _jquery2['default'].ajax({
-	        url: '/getEnsembleSuggestions',
-	        data: { value: value },
-	        success: function success(response) {
-	          // this.setState({models: response});
-	          console.log(JSON.parse(response));
 	        }
 	      });
 	    }
@@ -51300,6 +51341,10 @@
 	
 	var _materialUiFontIcon2 = _interopRequireDefault(_materialUiFontIcon);
 	
+	var _materialUiCircularProgress = __webpack_require__(/*! material-ui/CircularProgress */ 198);
+	
+	var _materialUiCircularProgress2 = _interopRequireDefault(_materialUiCircularProgress);
+	
 	// custom components
 	
 	var _dropdownJs = __webpack_require__(/*! ./dropdown.js */ 440);
@@ -51317,10 +51362,6 @@
 	var _selectiontableJs = __webpack_require__(/*! ./selectiontable.js */ 463);
 	
 	var _selectiontableJs2 = _interopRequireDefault(_selectiontableJs);
-	
-	/**
-	 * A contrived example using a transition between steps
-	 */
 	
 	var styles = {
 	  exampleImageInput: {
@@ -51356,6 +51397,14 @@
 	      if (selection == 'selectedModels') {
 	        args = _this.props['selectedColumn'];
 	      }
+	      if (selection == 'selectedSeedModel') {
+	        onClickFunction(_this.props[selection], _this.props.selectedColumn, _this.props.predictionType, _this.props.predictionClass);
+	        return;
+	      }
+	      if (selection == 'selectedEnsembleModels') {
+	        onClickFunction(_this.props[selection]);
+	        return;
+	      }
 	      onClickFunction(_this.props[selection], args);
 	    };
 	
@@ -51383,7 +51432,7 @@
 	        'div',
 	        { style: { margin: '12px 0', color: 'white' } },
 	        _react2['default'].createElement(_materialUiRaisedButton2['default'], {
-	          label: stepIndex === 4 ? 'Finish' : 'Next',
+	          label: stepIndex === 5 ? 'Finish' : 'Next',
 	          disabled: hold,
 	          primary: true,
 	          onTouchTap: this.handleNext.bind(this, selection, onClickFunction),
@@ -51419,6 +51468,21 @@
 	    //   </StepContent>
 	    // </Step>
 	  }, {
+	    key: 'componentWillReceiveProps',
+	    value: function componentWillReceiveProps(nextProps) {
+	      if (this.props.table != nextProps.table && nextProps.table != undefined) {
+	        var means = nextProps.table.models.map(function (item, i) {
+	          return nextProps.table[nextProps.table.metrics[0]][i][3];
+	        });
+	        var bestSeedModelScore = Math.max.apply(null, means);
+	        var bestSeedModelTag = nextProps.table.models[means.indexOf(bestSeedModelScore)];
+	        var selectedSeedModel = nextProps.selectedModels[means.indexOf(bestSeedModelScore)];
+	        nextProps._setAppState({ selectedSeedModel: selectedSeedModel });
+	        nextProps._setAppState({ bestSeedModelTag: bestSeedModelTag });
+	        nextProps._setAppState({ bestSeedModelScore: bestSeedModelScore });
+	      }
+	    }
+	  }, {
 	    key: 'render',
 	    value: function render() {
 	      var _this2 = this;
@@ -51433,6 +51497,7 @@
 	      //   selectedValue={this.props.selectedModel}
 	      //   selectionName='selectedModel'
 	      //   checkboxes={true}/>
+	      // Enigma has preselected the models with less than 75% correlation.
 	      return _react2['default'].createElement(
 	        'div',
 	        { style: {
@@ -51515,20 +51580,29 @@
 	                _react2['default'].createElement(
 	                  'span',
 	                  { style: { color: 'rgba(255, 0, 255, 1)' } },
+	                  this.props.predictionClass,
+	                  ' ',
 	                  this.props.predictionType,
-	                  '.'
+	                  '. '
 	                ),
-	                ' Data is __ distributed. There are ',
+	                'There are ',
 	                _react2['default'].createElement(
 	                  'span',
 	                  { style: { color: 'rgba(255, 0, 255, 1)' } },
 	                  this.props.observationCount
 	                ),
-	                ' observations. Please select an suggested model based on these parameters.'
+	                ' observations. Please select from the ',
+	                _react2['default'].createElement(
+	                  'span',
+	                  { style: { color: 'rgba(255, 0, 255, 1)' } },
+	                  this.props.suggestedModels.length
+	                ),
+	                ' suggested model based on these parameters.'
 	              ),
 	              _react2['default'].createElement(_multidropdownJs2['default'], {
 	                _setAppState: this.props._setAppState,
 	                _updateAppState: this.props._updateAppState,
+	                label: 'Seed Models',
 	                items: this.props.suggestedModels.sort(),
 	                selectionName: 'selectedModels',
 	                selections: this.props.selectedModels }),
@@ -51541,14 +51615,145 @@
 	            _react2['default'].createElement(
 	              _materialUiStepper.StepLabel,
 	              { style: { color: this.state.stepIndex > 2 ? 'rgb(0, 188, 212)' : 'lightgrey' } },
-	              'Select Model'
+	              'Select Seed Model: ',
+	              this.props.selectedSeedModel !== null ? this.props.selectedSeedModel.substr(this.props.selectedSeedModel.indexOf('('), this.props.selectedSeedModel.length) : ''
 	            ),
 	            _react2['default'].createElement(
 	              _materialUiStepper.StepContent,
 	              null,
-	              _react2['default'].createElement(_selectiontableJs2['default'], {
-	                items: this.props.selectedModels }),
-	              this.renderStepActions(3, this.props.selectedModel == null ? true : false, '', this.props._getPredictions)
+	              this.props.table == undefined ? _react2['default'].createElement(
+	                'div',
+	                { style: { color: 'lightgrey' } },
+	                _react2['default'].createElement(_materialUiCircularProgress2['default'], null),
+	                'Building Models...'
+	              ) : _react2['default'].createElement(
+	                'div',
+	                null,
+	                _react2['default'].createElement(
+	                  'p',
+	                  null,
+	                  _react2['default'].createElement(
+	                    'span',
+	                    { style: { color: 'rgba(255, 0, 255, 1)' } },
+	                    this.props.bestSeedModelTag
+	                  ),
+	                  ' has the highest ',
+	                  _react2['default'].createElement(
+	                    'span',
+	                    { style: { color: 'rgba(255, 0, 255, 1)' } },
+	                    this.props.table != undefined ? this.props.table.metrics[0] : '',
+	                    ' '
+	                  ),
+	                  'score of ',
+	                  _react2['default'].createElement(
+	                    'span',
+	                    { style: { color: 'rgba(255, 0, 255, 1)' } },
+	                    this.props.bestSeedModelScore,
+	                    '. '
+	                  ),
+	                  'Please select this model or another as the seed to initiate ensemble creation.'
+	                ),
+	                _react2['default'].createElement(_dropdownJs2['default'], {
+	                  items: this.props.selectedModels,
+	                  _setAppState: this.props._setAppState,
+	                  selectedValue: this.props.selectedSeedModel,
+	                  selectionName: 'selectedSeedModel' }),
+	                _react2['default'].createElement(_selectiontableJs2['default'], {
+	                  type: 'summary',
+	                  table: this.props.table })
+	              ),
+	              this.renderStepActions(3, this.props.selectedSeedModel == null ? true : false, 'selectedSeedModel', this.props._getEnsembleSuggestions)
+	            )
+	          ),
+	          _react2['default'].createElement(
+	            _materialUiStepper.Step,
+	            null,
+	            _react2['default'].createElement(
+	              _materialUiStepper.StepLabel,
+	              { style: { color: this.state.stepIndex > 2 ? 'rgb(0, 188, 212)' : 'lightgrey' } },
+	              'Create Ensemble: ',
+	              this.props.selectedEnsembleModels.length > 0 ? this.props.selectedEnsembleModels.length.toString() + ' Models' : '',
+	              ' '
+	            ),
+	            _react2['default'].createElement(
+	              _materialUiStepper.StepContent,
+	              null,
+	              this.props.correlation == undefined ? _react2['default'].createElement(
+	                'div',
+	                { style: { color: 'lightgrey' } },
+	                _react2['default'].createElement(_materialUiCircularProgress2['default'], null),
+	                'Building Models...'
+	              ) : _react2['default'].createElement(
+	                'div',
+	                null,
+	                _react2['default'].createElement(
+	                  'p',
+	                  null,
+	                  'Enigma has found the 4 most Jaccardian disimilar models to ',
+	                  _react2['default'].createElement(
+	                    'span',
+	                    { style: { color: 'rgba(255, 0, 255, 1)' } },
+	                    this.props.selectedSeedModel,
+	                    ' '
+	                  ),
+	                  'in order to attempt to prevent correlation among model predictions. Please select low correlated models, less than 75%, to create the stacked ensemble.'
+	                ),
+	                _react2['default'].createElement(_multidropdownJs2['default'], {
+	                  _setAppState: this.props._setAppState,
+	                  _updateAppState: this.props._updateAppState,
+	                  label: 'Ensemble Models',
+	                  items: this.props.correlation.modelNames,
+	                  selectionName: 'selectedEnsembleModels',
+	                  selections: this.props.selectedEnsembleModels }),
+	                _react2['default'].createElement(_selectiontableJs2['default'], {
+	                  type: 'correlation',
+	                  table: this.props.correlation })
+	              ),
+	              this.renderStepActions(4, this.props.selectedEnsembleModels.length == 0 ? true : false, 'selectedEnsembleModels', this.props._createStackedEnsemble)
+	            )
+	          ),
+	          _react2['default'].createElement(
+	            _materialUiStepper.Step,
+	            null,
+	            _react2['default'].createElement(
+	              _materialUiStepper.StepLabel,
+	              { style: { color: this.state.stepIndex > 3 ? 'rgb(0, 188, 212)' : 'lightgrey' } },
+	              'Predict New Observations'
+	            ),
+	            _react2['default'].createElement(
+	              _materialUiStepper.StepContent,
+	              null,
+	              this.props.stacked == undefined ? _react2['default'].createElement(
+	                'div',
+	                { style: { color: 'lightgrey' } },
+	                _react2['default'].createElement(_materialUiCircularProgress2['default'], null),
+	                'Building Ensemble...'
+	              ) : _react2['default'].createElement(
+	                'div',
+	                null,
+	                _react2['default'].createElement(
+	                  'p',
+	                  null,
+	                  'The final stacked model has an overall ',
+	                  _react2['default'].createElement(
+	                    'span',
+	                    { style: { color: 'rgba(255, 0, 255, 1)' } },
+	                    this.props.stackedstats
+	                  ),
+	                  ' of ',
+	                  _react2['default'].createElement(
+	                    'span',
+	                    { style: { color: 'rgba(255, 0, 255, 1)' } },
+	                    this.props.predictionType,
+	                    '.'
+	                  ),
+	                  'Please input or upload new observations for the model to predict.'
+	                ),
+	                _react2['default'].createElement(_selectiontableJs2['default'], {
+	                  type: 'summary',
+	                  table: this.props.stackedstats })
+	              ),
+	              this.renderStepActions(5, this.props.selectedModel == null ? true : false, '', this.props._getPredictions)
 	            )
 	          )
 	        ),
@@ -58088,7 +58293,7 @@
 	                  position: 'absolute',
 	                  top: 5,
 	                  left: 0 } },
-	              'Models'
+	              this.props.label
 	            ),
 	            _react2['default'].createElement(_materialUiSvgIconsNavigationArrowDropDownJs2['default'], { style: { position: 'absolute', right: 5, bottom: 5 }, color: 'white' })
 	          )
@@ -58566,6 +58771,10 @@
 	
 	var _materialUiTable = __webpack_require__(/*! material-ui/Table */ 442);
 	
+	var _materialUiDivider = __webpack_require__(/*! material-ui/Divider */ 458);
+	
+	var _materialUiDivider2 = _interopRequireDefault(_materialUiDivider);
+	
 	var SelectionTable = (function (_React$Component) {
 	  _inherits(SelectionTable, _React$Component);
 	
@@ -58573,62 +58782,154 @@
 	    _classCallCheck(this, SelectionTable);
 	
 	    _get(Object.getPrototypeOf(SelectionTable.prototype), 'constructor', this).call(this, props);
-	    this.state = {};
 	  }
 	
 	  _createClass(SelectionTable, [{
 	    key: 'render',
 	    value: function render() {
+	      var _this = this;
+	
 	      return _react2['default'].createElement(
-	        _materialUiTable.Table,
-	        null,
-	        _react2['default'].createElement(
-	          _materialUiTable.TableHeader,
-	          null,
-	          _react2['default'].createElement(
-	            _materialUiTable.TableRow,
+	        'div',
+	        { style: {
+	            position: 'fixed',
+	            right: 20,
+	            top: 30,
+	            width: 550
+	          } },
+	        this.props.type == 'summary' ? this.props.table.metrics.map(function (metric, i) {
+	          return _react2['default'].createElement(
+	            'div',
 	            null,
 	            _react2['default'].createElement(
-	              _materialUiTable.TableHeaderColumn,
-	              null,
-	              'Model'
-	            ),
-	            _react2['default'].createElement(
-	              _materialUiTable.TableHeaderColumn,
-	              null,
-	              'Accuracy'
-	            ),
-	            _react2['default'].createElement(
-	              _materialUiTable.TableHeaderColumn,
-	              null,
-	              'Kappa'
-	            )
-	          )
-	        ),
-	        _react2['default'].createElement(
-	          _materialUiTable.TableBody,
-	          null,
-	          this.props.items.length > 0 ? this.props.items.map(function (item, i) {
-	            return _react2['default'].createElement(
-	              _materialUiTable.TableRow,
-	              { key: item },
+	              _materialUiTable.Table,
+	              {
+	                selectable: false,
+	                style: {
+	                  backgroundColor: 'rgba(255,255,255,.2)',
+	                  maxHeight: 300,
+	                  overflowY: 'scroll'
+	                } },
 	              _react2['default'].createElement(
-	                _materialUiTable.TableRowColumn,
-	                null,
-	                '1'
+	                _materialUiTable.TableHeader,
+	                {
+	                  adjustForCheckbox: false,
+	                  displaySelectAll: false,
+	                  enableSelectAll: false },
+	                _react2['default'].createElement(
+	                  _materialUiTable.TableRow,
+	                  null,
+	                  _react2['default'].createElement(
+	                    _materialUiTable.TableHeaderColumn,
+	                    { colSpan: _this.props.table.columns.length + 1, style: { textAlign: 'center' } },
+	                    metric
+	                  )
+	                ),
+	                _react2['default'].createElement(
+	                  _materialUiTable.TableRow,
+	                  null,
+	                  _react2['default'].createElement(
+	                    _materialUiTable.TableHeaderColumn,
+	                    { key: 'Model', style: { textAlign: 'center', paddingRight: 5 } },
+	                    'Model'
+	                  ),
+	                  _this.props.table.columns.map(function (item, i) {
+	                    return _react2['default'].createElement(
+	                      _materialUiTable.TableHeaderColumn,
+	                      { key: item, style: { textAlign: 'center', paddingRight: 5, paddingLeft: 5 } },
+	                      item
+	                    );
+	                  })
+	                )
 	              ),
 	              _react2['default'].createElement(
-	                _materialUiTable.TableRowColumn,
-	                null,
-	                'John Smith'
-	              ),
-	              _react2['default'].createElement(
-	                _materialUiTable.TableRowColumn,
-	                null,
-	                'Employed'
+	                _materialUiTable.TableBody,
+	                { displayRowCheckbox: false },
+	                _this.props.table[metric].map(function (row, i) {
+	                  return _react2['default'].createElement(
+	                    _materialUiTable.TableRow,
+	                    { key: i, style: { color: 'lightgrey' } },
+	                    _react2['default'].createElement(
+	                      _materialUiTable.TableRowColumn,
+	                      { key: 'Model', style: { textAlign: 'center', paddingRight: 5 } },
+	                      _this.props.table.models[i]
+	                    ),
+	                    row.map(function (item, i) {
+	                      return _react2['default'].createElement(
+	                        _materialUiTable.TableRowColumn,
+	                        { key: item, style: { textAlign: 'center', paddingRight: 5, paddingLeft: 5 } },
+	                        item
+	                      );
+	                    })
+	                  );
+	                })
 	              )
-	            );
-	          }) : _react2['default'].createElement('div', null)
+	            ),
+	            i != _this.props.table.metrics.length ? _react2['default'].createElement(_materialUiDivider2['default'], null) : _react2['default'].createElement('div', null)
+	          );
+	        }) : _react2['default'].createElement(
+	          _materialUiTable.Table,
+	          {
+	            selectable: false,
+	            style: {
+	              backgroundColor: 'rgba(255,255,255,.2)',
+	              maxHeight: 300,
+	              overflowY: 'scroll'
+	            } },
+	          _react2['default'].createElement(
+	            _materialUiTable.TableHeader,
+	            {
+	              adjustForCheckbox: false,
+	              displaySelectAll: false,
+	              enableSelectAll: false },
+	            _react2['default'].createElement(
+	              _materialUiTable.TableRow,
+	              null,
+	              _react2['default'].createElement(
+	                _materialUiTable.TableHeaderColumn,
+	                { colSpan: this.props.table.columns.length + 1, style: { textAlign: 'center' } },
+	                'Correlation'
+	              )
+	            ),
+	            _react2['default'].createElement(
+	              _materialUiTable.TableRow,
+	              null,
+	              _react2['default'].createElement(
+	                _materialUiTable.TableHeaderColumn,
+	                { key: 'Model', style: { textAlign: 'center', paddingRight: 5 } },
+	                'Model'
+	              ),
+	              this.props.table.columns.map(function (item, i) {
+	                return _react2['default'].createElement(
+	                  _materialUiTable.TableHeaderColumn,
+	                  { key: item, style: { textAlign: 'center', paddingRight: 5, paddingLeft: 5 } },
+	                  item
+	                );
+	              })
+	            )
+	          ),
+	          _react2['default'].createElement(
+	            _materialUiTable.TableBody,
+	            { displayRowCheckbox: false },
+	            this.props.table.correlation.map(function (row, i) {
+	              return _react2['default'].createElement(
+	                _materialUiTable.TableRow,
+	                { key: i, style: { color: 'lightgrey' } },
+	                _react2['default'].createElement(
+	                  _materialUiTable.TableRowColumn,
+	                  { key: 'Model', style: { textAlign: 'center', paddingRight: 5 } },
+	                  _this.props.table.models[i]
+	                ),
+	                row.map(function (item, i) {
+	                  return _react2['default'].createElement(
+	                    _materialUiTable.TableRowColumn,
+	                    { key: item, style: { textAlign: 'center', paddingRight: 5, paddingLeft: 5 } },
+	                    item
+	                  );
+	                })
+	              );
+	            })
+	          )
 	        )
 	      );
 	    }
@@ -58693,27 +58994,26 @@
 	      // if (this.props.suggestedModels !== nextProps.suggestedModels) {
 	      //   this._createNetwork('suggestedModels')
 	      // }
-	      //   var categories =[]
-	      //   for (var category in this.props.models[0]) {
-	      //     if (category !== 'Model' && category !== 'Tag') {
-	      //       categories.push(category)
-	      //     }
-	      //   }
-	      //   this.state.renderer.forEachNode( (nodeUI) => {
-	      //     if (nextProps.suggestedModels.indexOf(nodeUI.id) == -1) {
-	      //       // nodeUI.data = 'hidden'
-	      //       // nodeUI.color = 0x2F4F4F
-	      //         this.state.renderer.graph().removeNode(nodeUI.id)
-	      //     }
-	      //   });
-	      //   // this.state.renderer.forEachLink( (linkUI) => {
-	      //   //   if (nextProps.suggestedModels.indexOf(linkUI.from.id) == -1 && categories.indexOf(linkUI.from.id) == -1) {
-	      //   //     // linkUI.toColor = 0x2F4F4F
-	      //   //     // linkUI.fromColor = 0x2F4F4F
-	      //   //     // this.state.renderer.graph().removeLink(linkUI.to.id)
-	      //   //   }
-	      //   // });
-	      // }
+	      var categories = [];
+	      for (var category in this.props.models[0]) {
+	        if (category !== 'Model' && category !== 'Tag') {
+	          categories.push(category);
+	        }
+	      }
+	      this.state.renderer.forEachNode(function (nodeUI) {
+	        if (nextProps.suggestedModels.indexOf(nodeUI.id) == -1) {
+	          // nodeUI.data = 'hidden'
+	          nodeUI.color = 0x2F4F4F;
+	          // this.state.renderer.graph().removeNode(nodeUI.id)
+	        }
+	      });
+	      this.state.renderer.forEachLink(function (linkUI) {
+	        if (nextProps.suggestedModels.indexOf(linkUI.from.id) == -1 && categories.indexOf(linkUI.from.id) == -1) {
+	          linkUI.toColor = 0x2F4F4F;
+	          linkUI.fromColor = 0x2F4F4F;
+	          // this.state.renderer.graph().removeLink(linkUI.to.id)
+	        }
+	      });
 	    }
 	  }, {
 	    key: 'render',

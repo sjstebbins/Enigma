@@ -55,6 +55,7 @@
 # ipak(packages)
 library(caret)
 library(caretEnsemble)
+library(jsonlite)
 
 loadDependencies <- function (method) {
   requiredLibraries <- getModelInfo(method, regex = FALSE)[[1]]$library
@@ -89,13 +90,15 @@ summary <- summary(results)
 # my.summary <- do.call(cbind, lapply(results, summary))
 # my.summary <- summary(DATA$ids)
 # summary <- data.frame(ids=names(summary$statistics$RMSE)), nums=my.summary)
-stats <- data.frame()
+# stats <- data.frame(Model=summary$methods)
 for (metric in summary$metrics) {
-  mean <- data.frame(summary$statistics[[metric]])$Mean
-  stats[[metric]] = mean
+  df <- data.frame(summary$statistics[[metric]])
+  cbind(Model=summary$methods, df)
 }
-
-print(stats)
+summary$statistics[['models']] = summary$methods
+summary$statistics[['metrics']] = summary$metrics
+summary$statistics[['columns']] = names(data.frame(summary$statistics[[1]]))
+print(summary$statistics)
 # print(method$library)
 #
 #

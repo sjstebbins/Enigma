@@ -16,6 +16,7 @@ import ProgressStepper from './components/progressstepper.js'
 import DataTable from './components/datatable.js'
 import NetworkGraph from './components/networkgraph.js'
 import InfoPane from './components/infopane.js'
+import SelectionTable from './components/selectiontable.js'
 // import Network from './components/network.js'
 // Main app
 class App extends React.Component {
@@ -30,23 +31,32 @@ class App extends React.Component {
           selectedColumn: null,
           observationCount: null,
           predictionType: null,
+          predictionClass: null,
           suggestedModels: [],
           selectedModels: [],
-          console: null
+          bestSeedModelTag: null,
+          bestSeedModelScore: null,
+          selectedSeedModel: null,
+          suggestedEnsembleModels: [],
+          selectedEnsembleModels: []
         }
     }
     componentWillMount () {
       this._getSampleDatasets()
       this._getModels()
     }
+    // <InfoPane
+    // console={this.state.console}
+    // setAppState={this._setAppState}/>:
+    // <div/>
     render () {
         return (
             <MuiThemeProvider muiTheme={getMuiTheme()}>
               <div>
                 {this.state.loading ?
                   <div style={{position: 'fixed', top: 20, right: 30}}>
-                    <h4 style={{position: 'absolute', right: 20, width: 200, color: 'darkgrey'}}>
-                      Building Models...
+                    <h4 style={{position: 'absolute', right: 20, width: 150, color: 'darkgrey'}}>
+                      Loading...
                     </h4>
                     <CircularProgress style={{position: 'absolute', top: 0, right: 0}} mode="indeterminate" />
                   </div>:
@@ -59,18 +69,14 @@ class App extends React.Component {
                   _getSampleData={this._getSampleData}
                   _getSuggestedModels={this._getSuggestedModels}
                   _runSelectedModels={this._runSelectedModels}
+                  _getEnsembleSuggestions={this._getEnsembleSuggestions}
+                  _createStackedEnsemble={this._createStackedEnsemble}
                   _getPredictions={this._getPredictions}
                   {...this.state}/>
                 {this.state.models.length > 0 ?
                   <NetworkGraph
                   models={this.state.models}
                   suggestedModels={this.state.suggestedModels}/> :
-                  <div/>
-                }
-                {this.state.console !== null ?
-                  <InfoPane
-                  console={this.state.console}
-                  setAppState={this._setAppState}/>:
                   <div/>
                 }
               </div>
@@ -80,7 +86,6 @@ class App extends React.Component {
     componentDidUpdate (prevProps, prevState) {
     }
     componentDidMount () {
-      this._getEnsembleSuggestions('Regression')
       this.setState({loading: false})
     }
     _setAppState = (obj) => {
@@ -129,6 +134,7 @@ class App extends React.Component {
             response = JSON.parse(response)
             this.setState({observationCount: response.observationCount})
             this.setState({predictionType: response.predictionType})
+            this.setState({predictionClass: response.predictionClass})
             this.setState({suggestedModels: response.suggestedModels});
         }
       })
@@ -143,9 +149,47 @@ class App extends React.Component {
           target: target
         },
         success: response => {
-          console.log(JSON.parse(response))
+          response = JSON.parse(response)
+          var obj = this.state
+          var newObj = update(obj, {table: {$set: JSON.parse(response)}});
+          this.setState(newObj)
           this.setState({loading: false})
-          this.setState({console: JSON.parse(response)});
+        }
+      })
+    }
+    _getEnsembleSuggestions = (model, target, type, output) => {
+      this.setState({loading: true})
+      $.ajax({
+        url:'/getEnsembleSuggestions',
+        data: {
+          model: model.substr(model.indexOf('('), model.length),
+          target: target,
+          type: type,
+          output: output
+        },
+        success: response => {
+          response = JSON.parse(response)
+          var obj = this.state
+          var newObj = update(obj, {correlation: {$set: JSON.parse(response)}});
+          this.setState(newObj)
+          this.setState({loading: false})
+        }
+      })
+    }
+    _createStackedEnsemble = (models) => {
+      this.setState({loading: true})
+      $.ajax({
+        url:'/createStackedEnsemble',
+        data: {
+          models: models.length > 1 ? models.join('&'): models
+        },
+        success: response => {
+          response = JSON.parse(response)
+          console.log(JSON.parse(response))
+          var obj = this.state
+          var newObj = update(obj, {stackedstats: {$set: JSON.parse(response)}});
+          this.setState(newObj)
+          this.setState({loading: false})
         }
       })
     }
@@ -153,16 +197,6 @@ class App extends React.Component {
       $.ajax({
         url:'/getPredictions',
         data: { observations: observations },
-        success: response => {
-            // this.setState({models: response});
-            console.log(JSON.parse(response))
-        }
-      })
-    }
-    _getEnsembleSuggestions (value) {
-      $.ajax({
-        url:'/getEnsembleSuggestions',
-        data: { value: value },
         success: response => {
             // this.setState({models: response});
             console.log(JSON.parse(response))

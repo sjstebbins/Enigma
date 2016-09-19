@@ -15,27 +15,27 @@ export default class NetworkGraph extends React.Component {
     // if (this.props.suggestedModels !== nextProps.suggestedModels) {
     //   this._createNetwork('suggestedModels')
     // }
-    //   var categories =[]
-    //   for (var category in this.props.models[0]) {
-    //     if (category !== 'Model' && category !== 'Tag') {
-    //       categories.push(category)
-    //     }
-    //   }
-    //   this.state.renderer.forEachNode( (nodeUI) => {
-    //     if (nextProps.suggestedModels.indexOf(nodeUI.id) == -1) {
-    //       // nodeUI.data = 'hidden'
-    //       // nodeUI.color = 0x2F4F4F
-    //         this.state.renderer.graph().removeNode(nodeUI.id)
-    //     }
-    //   });
-    //   // this.state.renderer.forEachLink( (linkUI) => {
-    //   //   if (nextProps.suggestedModels.indexOf(linkUI.from.id) == -1 && categories.indexOf(linkUI.from.id) == -1) {
-    //   //     // linkUI.toColor = 0x2F4F4F
-    //   //     // linkUI.fromColor = 0x2F4F4F
-    //   //     // this.state.renderer.graph().removeLink(linkUI.to.id)
-    //   //   }
-    //   // });
-    // }
+      var categories =[]
+      for (var category in this.props.models[0]) {
+        if (category !== 'Model' && category !== 'Tag') {
+          categories.push(category)
+        }
+      }
+      this.state.renderer.forEachNode( (nodeUI) => {
+        if (nextProps.suggestedModels.indexOf(nodeUI.id) == -1) {
+          // nodeUI.data = 'hidden'
+          nodeUI.color = 0x2F4F4F
+            // this.state.renderer.graph().removeNode(nodeUI.id)
+        }
+      });
+      this.state.renderer.forEachLink( (linkUI) => {
+        if (nextProps.suggestedModels.indexOf(linkUI.from.id) == -1 && categories.indexOf(linkUI.from.id) == -1) {
+          linkUI.toColor = 0x2F4F4F
+          linkUI.fromColor = 0x2F4F4F
+          // this.state.renderer.graph().removeLink(linkUI.to.id)
+        }
+      });
+
   }
   render() {
     return (

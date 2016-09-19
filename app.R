@@ -1,26 +1,8 @@
 library(caret)
 library(caretEnsemble)
+library(jsonlite)
+
 BEST_MODEL = NULL
-
-getEnsembleSuggestions <- function (type) {
-  tag <- read.csv("./data/tag_data.csv", row.names = 1)
-  tag <- as.matrix(tag)
-  ## Select only models for regression
-  regModels <- tag[tag[,type] == 1,]
-
-  all <- 1:nrow(regModels)
-  ## Seed the analysis with the SVM model
-  start <- grep("(svmRadial)", rownames(regModels), fixed = TRUE)
-  pool <- all[all != start]
-
-  ## Select 4 model models by maximizing the Jaccard
-  ## dissimilarity between sets of models
-  nextMods <- maxDissim(regModels[start,,drop = FALSE],
-                        regModels[pool, ],
-                        method = "Jaccard",
-                        n = 4)
-  return(rownames(regModels)[c(start, nextMods)])
-}
 
 loadDependencies <- function (method) {
   requiredLibraries <- getModelInfo(method, regex = FALSE)[[1]]$library
@@ -48,27 +30,99 @@ runSelectedModels <- function (data, methods, target) {
   results <- resamples(models)
   summary <- summary(results)
   # convert to short hand stats
-  stats <- data.frame(Model=summary$methods)
-  for (metric in summary$metrics) {
-    mean <- data.frame(summary$statistics[[metric]])$Mean
-    stats[[metric]] = mean
-  }
-  print(stats)
-  return(stats)
+  # stats <- data.frame(Model=summary$methods)
+  # for (metric in summary$metrics) {
+  #   Min. 1st Qu. Median   Mean 3rd Qu. Max.
+  #   for (name in names(summary$statistics)) {
+  #     stats[[metric]] = data.frame(summary$statistics[[metric]])[[name]]
+  #   }
+  # }
+  summary$statistics[['models']] = summary$methods
+  summary$statistics[['metrics']] = summary$metrics
+  summary$statistics[['columns']] = names(data.frame(summary$statistics[[1]]))
+  return(toJSON(summary$statistics))
+}
 
-  # # Example of Boosting Algorithms
-  # control <- trainControl(method="repeatedcv", number=5, repeats=3, allowParallel=TRUE)
-  # # C5.0
-  # model <- train(formula, data=data, method=method, trControl=control, verbose=FALSE)
-  # BEST_MODEL <- model
-  # Stochastic Gradient Boosting
-  # fit.rf <- train(formula, data=data, method="rf", trControl=control, verbose=FALSE)
-  # summarize result
-  # methods <- as.formula(method)
-  # boosting_results <- resamples(list(rf=model))
-  # print(summary(model))
-  # return(summary(model))
-  # dotplot(boosting_results)
+getEnsembleSuggestions <- function ( data, model, target, type) {
+  tag <- read.csv("./data/tag_data.csv", row.names = 1)
+  tag <- as.matrix(tag)
+  ## Select only models for regression
+  regModels <- tag[tag[,type] == 1,]
+
+  all <- 1:nrow(regModels)
+  ## Seed the analysis with the SVM model
+  start <- grep(model, rownames(regModels), fixed = TRUE)
+  pool <- all[all != start]
+
+  ## Select 4 models by maximizing the Jaccard
+  ## dissimilarity between sets of models
+  nextMods <- maxDissim(regModels[start,,drop = FALSE],
+                        regModels[pool, ],
+                        method = "Jaccard",
+                        n = 4)
+
+  suggestedMethodNames <- data.frame(rownames(regModels)[c(start, nextMods)])[,1]
+
+
+  removeParens <- function (method) {
+    return(gsub("[\\(\\)]", "", regmatches(method, gregexpr("\\(.*?\\)", method))[[1]]))
+  }
+  suggestedMethods <- lapply(suggestedMethodNames, removeParens)
+  # custom method to load or install dependencies of given method
+
+  for (method in suggestedMethods) {
+    loadDependencies(method)
+  }
+
+  target <- as.formula(paste(target, "~ ."))
+
+  control <- trainControl(method="repeatedcv", number=5, repeats=3, savePredictions=TRUE, classProbs=TRUE)
+  models <- caretList(target, data=data, trControl=control, methodList=suggestedMethods)
+  results <- resamples(models)
+  correlation <- modelCor(results)
+  summary <- summary(results)
+
+  # sums <- lapply(correlation, sum)
+  # max <- which(sums==max(sums))
+  # x <- correlation[apply(correlation[, -1], MARGIN = 1, function(x) all(x > .75)), ]
+  # y <- apply(x[, -1], MARGIN = 1, function(x) all(x > .75))
+
+  methods <- unlist(strsplit(gsub("\\[|\\]", "", suggestedMethodNames), split=","))
+
+  return(toJSON(list(
+    correlation = correlation,
+    models = summary$methods,
+    columns = summary$methods,
+    metrics = summary$metrics,
+    modelNames = methods
+  )))
+}
+
+createStackedEnsemble <- function (data, methods, target) {
+  print(methods)
+  methods <- unlist(strsplit(methods, split='&'))
+  removeParens <- function (method) { return(gsub(".*\\((.*)\\).*", "\\1", method))}
+  methods <- lapply(methods, removeParens)
+
+  for (method in methods) {
+    loadDependencies(method)
+  }
+
+  print(methods)
+  # target <- as.formula(paste(target, "~ ."))
+  #
+  # control <- trainControl(method="repeatedcv", number=5, repeats=3, savePredictions=TRUE, classProbs=TRUE)
+  # models <- caretList(target, data=data, trControl=control, methodList=methods)
+  #
+  # stackControl <- trainControl(method="repeatedcv", number=10, repeats=3, savePredictions=TRUE, classProbs=TRUE)
+  # stack <- caretStack(models, method="rf", metric="Accuracy", trControl=stackControl)
+  # results <- resamples(stack)
+  # summary <- summary(results)
+  # summary$statistics[['models']] = summary$methods
+  # summary$statistics[['metrics']] = summary$metrics
+  # summary$statistics[['columns']] = names(data.frame(summary$statistics[[1]]))
+  # return(toJSON(summary$statistics))
+  return('TEST')
 }
 
 getPredictions <- function (test) {

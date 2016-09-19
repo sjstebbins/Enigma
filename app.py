@@ -73,10 +73,20 @@ def getSuggestedModels():
     else:
         predictionType = 'Regression'
     predictionModels = models.loc[models[predictionType] == 1]
+
+    # filter for two class or mutli class outputs
+    if len(list(set(DATA[value]))) > 2:
+        predictionClass = 'Multiple'
+        predictionModels = predictionModels.loc[models['Two Class Only'] == 0]
+    else:
+        predictionClass = 'Binary'
+        predictionModels = predictionModels.loc[models['Two Class Only'] == 1]
+
     suggestedModels = predictionModels['Model'].values.tolist()
     response = {
         'suggestedModels': suggestedModels,
         'predictionType': predictionType,
+        'predictionClass': predictionClass,
         'observationCount': len(DATA.index)
     }
     return(json.dumps(response, sort_keys=True))
@@ -84,11 +94,20 @@ def getSuggestedModels():
 @app.route("/runSelectedModels")
 def runSelectedModels():
     runModels = ro.r('runSelectedModels')
-    summary = runModels(pandas2ri.py2ri(DATA), request.args['models'], request.args['target'])
-    # print(com.convert_robj(summary))
-    print('-' * 100)
-    print(summary)
-    return(json.dumps(str(summary)))
+    stats = runModels(pandas2ri.py2ri(DATA), request.args['models'], request.args['target'])
+    return(json.dumps(str(stats)))
+
+@app.route("/getEnsembleSuggestions")
+def getEnsembleSuggestions():
+    getEnsembleSuggestions = ro.r('getEnsembleSuggestions')
+    suggestions = getEnsembleSuggestions(pandas2ri.py2ri(DATA), request.args['model'], request.args['target'], request.args['type'])
+    return(json.dumps(str(suggestions)))
+
+@app.route("/createStackedEnsemble")
+def createStackedEnsemble():
+    createStackedEnsemble = ro.r('createStackedEnsemble')
+    stack = createStackedEnsemble(pandas2ri.py2ri(DATA), request.args['models'], request.args['target'])
+    return(json.dumps(str(stack)))
 
 @app.route("/getPredictions")
 def getPredictions():
@@ -96,16 +115,10 @@ def getPredictions():
     predictions = getPredictions(DATA[30])
     print(predictions)
     return(json.dumps(str(predictions)))
-    @app.route("/getEnsembleSuggestions")
-    def getEnsembleSuggestions():
-        getEnsembleSuggestions = ro.r('getEnsembleSuggestions')
-        suggestions = getEnsembleSuggestions(request.args['value'])
-        return(json.dumps(str(suggestions)))
-
 
 # run server
 if __name__ == "__main__":
     server = Server(app.wsgi_app)
     # watch for changes on the bundle.js file in static
     server.watch('static/**')
-    server.serve(7777)
+    server.serve(7999)

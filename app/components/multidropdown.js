@@ -51,7 +51,7 @@ export default class MultiDropDown extends React.Component {
               position: 'absolute',
               top: 5,
               left: 0}}>
-              Models
+              {this.props.label}
             </p>
             <DropDownArrow style={{position: 'absolute', right: 5, bottom: 5}} color='white'/>
           </div>
