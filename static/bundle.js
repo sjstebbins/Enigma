@@ -118,10 +118,6 @@
 	
 	var _componentsInfopaneJs2 = _interopRequireDefault(_componentsInfopaneJs);
 	
-	var _componentsSelectiontableJs = __webpack_require__(/*! ./components/selectiontable.js */ 463);
-	
-	var _componentsSelectiontableJs2 = _interopRequireDefault(_componentsSelectiontableJs);
-	
 	// import Network from './components/network.js'
 	// Main app
 	
@@ -153,6 +149,37 @@
 	        var state = update(_this.state, _defineProperty({}, selectionName, { $splice: [[index, 1]] }));
 	        _this.setState(state);
 	      }
+	    };
+	
+	    this._resetState = function () {
+	      _this.setState(_this.getInitialState());
+	    };
+	
+	    this._uploadData = function (data, test) {
+	      // console.log(data)
+	      // $.ajax({
+	      //   url:'/uploadData',
+	      //   data: {
+	      //     data: data,
+	      //     test: test
+	      //   },
+	      //   xhr: function() {  // Custom XMLHttpRequest
+	      //       var myXhr = $.ajaxSettings.xhr();
+	      //       if(myXhr.upload){ // Check if upload property exists
+	      //           myXhr.upload.addEventListener('progress',progressHandlingFunction, false); // For handling the progress of the upload
+	      //       }
+	      //       return myXhr;
+	      //   },
+	      //   async: false,
+	      //   cache: false,
+	      //   method: 'POST',
+	      //   contentType: false,
+	      //   processData: false,
+	      //   success: response => {
+	      //     console.log('Upload success')
+	      //       // this.setState({: JSON.parse(response)});
+	      //   }
+	      // })
 	    };
 	
 	    this._getSampleData = function (value) {
@@ -190,8 +217,10 @@
 	        },
 	        success: function success(response) {
 	          response = JSON.parse(response);
+	          response = JSON.parse(response);
+	          response.columns.pop();
 	          var obj = _this.state;
-	          var newObj = update(obj, { table: { $set: JSON.parse(response) } });
+	          var newObj = update(obj, { table: { $set: response } });
 	          _this.setState(newObj);
 	          _this.setState({ loading: false });
 	        }
@@ -210,39 +239,92 @@
 	        },
 	        success: function success(response) {
 	          response = JSON.parse(response);
+	          response = JSON.parse(response);
 	          var obj = _this.state;
-	          var newObj = update(obj, { correlation: { $set: JSON.parse(response) } });
+	          var newObj = update(obj, { correlation: { $set: response } });
 	          _this.setState(newObj);
 	          _this.setState({ loading: false });
+	
+	          //preselect all mdoels < .75
+	          Array.prototype.lessThan = function (val) {
+	            var i = this.length;
+	            while (i--) {
+	              if (Math.abs(this[i]) > val) {
+	                return false;
+	              }
+	            }
+	            return true;
+	          };
+	          var selectedEnsembleModels = [];
+	          var items = Array.prototype.slice.call(response.correlation);
+	          items.forEach((function (item, i) {
+	            var arr = Array.prototype.slice.call(item);
+	            var index = arr.indexOf(1);
+	            arr.splice(index, 1);
+	            if (arr.lessThan(.75)) {
+	              selectedEnsembleModels.push(response.modelNames[i]);
+	            }
+	          }).bind(response));
+	          _this.setState({ selectedEnsembleModels: selectedEnsembleModels });
 	        }
 	      });
 	    };
 	
-	    this._createStackedEnsemble = function (models) {
+	    this._createStackedEnsemble = function (models, target) {
 	      _this.setState({ loading: true });
 	      _jquery2['default'].ajax({
 	        url: '/createStackedEnsemble',
 	        data: {
-	          models: models.length > 1 ? models.join('&') : models
+	          models: models.length > 1 ? models.join('&') : models,
+	          target: target
 	        },
 	        success: function success(response) {
-	          response = JSON.parse(response);
-	          console.log(JSON.parse(response));
-	          var obj = _this.state;
-	          var newObj = update(obj, { stackedstats: { $set: JSON.parse(response) } });
-	          _this.setState(newObj);
 	          _this.setState({ loading: false });
+	          response = JSON.parse(response);
+	          response = JSON.parse(response);
+	          var vals = Object.keys(response.stats[0]).map(function (key) {
+	            return response.stats[0][key];
+	          });
+	          response.stats = vals;
+	          // set finalSelectedModel
+	          if (_this.state.predictionType == 'Regression') {
+	            if (response.stats[2] > _this.state.bestSeedModelScore) {
+	              _this.setState({ selectedFinalModel: _this.state.bestSeedModelTag });
+	            } else {
+	              _this.setState({ selectedFinalModel: response.stats[2] });
+	            }
+	          } else {
+	            if (response.stats[2] > _this.state.bestSeedModelScore) {
+	              _this.setState({ selectedFinalModel: response.stats[2] });
+	            } else {
+	              _this.setState({ selectedFinalModel: _this.state.bestSeedModelTag });
+	            }
+	          }
+	          var obj = _this.state;
+	          var newObj = update(obj, { stackedstats: { $set: response } });
+	          _this.setState(newObj);
 	        }
 	      });
 	    };
 	
-	    this._getPredictions = function (observations) {
+	    this._getPredictions = function (models, target, newdata, type, model) {
+	      _this.setState({ loading: true });
+	      _this.setState({ observations: JSON.parse(newdata) });
 	      _jquery2['default'].ajax({
 	        url: '/getPredictions',
-	        data: { observations: observations },
+	        data: {
+	          models: models.length > 1 ? models.join('&') : models,
+	          target: target,
+	          newdata: newdata,
+	          type: type,
+	          model: model
+	        },
 	        success: function success(response) {
-	          // this.setState({models: response});
-	          console.log(JSON.parse(response));
+	          response = JSON.parse(response);
+	          response = JSON.parse(response);
+	          console.log(response);
+	          _this.setState({ loading: false });
+	          _this.setState({ predictions: response[0] });
 	        }
 	      });
 	    };
@@ -263,7 +345,9 @@
 	      bestSeedModelScore: null,
 	      selectedSeedModel: null,
 	      suggestedEnsembleModels: [],
-	      selectedEnsembleModels: []
+	      selectedEnsembleModels: [],
+	      selectedFinalModel: [],
+	      observations: null
 	    };
 	  }
 	
@@ -289,7 +373,7 @@
 	          null,
 	          this.state.loading ? _react2['default'].createElement(
 	            'div',
-	            { style: { position: 'fixed', top: 20, right: 30 } },
+	            { style: { position: 'fixed', top: 25, right: 30 } },
 	            _react2['default'].createElement(
 	              'h4',
 	              { style: { position: 'absolute', right: 20, width: 150, color: 'darkgrey' } },
@@ -301,6 +385,8 @@
 	          _react2['default'].createElement(_componentsProgressstepperJs2['default'], _extends({
 	            _setAppState: this._setAppState,
 	            _updateAppState: this._updateAppState,
+	            _resetState: this._resetState,
+	            _uploadData: this._uploadData,
 	            _getSampleData: this._getSampleData,
 	            _getSuggestedModels: this._getSuggestedModels,
 	            _runSelectedModels: this._runSelectedModels,
@@ -51359,9 +51445,9 @@
 	
 	var _multidropdownJs2 = _interopRequireDefault(_multidropdownJs);
 	
-	var _selectiontableJs = __webpack_require__(/*! ./selectiontable.js */ 463);
+	var _statstableJs = __webpack_require__(/*! ./statstable.js */ 463);
 	
-	var _selectiontableJs2 = _interopRequireDefault(_selectiontableJs);
+	var _statstableJs2 = _interopRequireDefault(_statstableJs);
 	
 	var styles = {
 	  exampleImageInput: {
@@ -51391,19 +51477,22 @@
 	
 	      _this.setState({
 	        stepIndex: stepIndex + 1,
-	        finished: stepIndex >= 4
+	        finished: stepIndex >= 5
 	      });
-	      var args = null;
-	      if (selection == 'selectedModels') {
-	        args = _this.props['selectedColumn'];
+	      if (onClickFunction == null) {
+	        return;
 	      }
 	      if (selection == 'selectedSeedModel') {
 	        onClickFunction(_this.props[selection], _this.props.selectedColumn, _this.props.predictionType, _this.props.predictionClass);
 	        return;
 	      }
 	      if (selection == 'selectedEnsembleModels') {
-	        onClickFunction(_this.props[selection]);
+	        onClickFunction(_this.props[selection], _this.props.selectedColumn);
 	        return;
+	      }
+	      var args = null;
+	      if (selection == 'selectedModels') {
+	        args = _this.props['selectedColumn'];
 	      }
 	      onClickFunction(_this.props[selection], args);
 	    };
@@ -51417,6 +51506,12 @@
 	      }
 	    };
 	
+	    this._step2Label = function () {
+	      if (_this.props.selectedModels) {
+	        return _this.props.selectedModels.length < 2 ? _this.props.selectedModels[0] : _this.props.selectedModels.length.toString() + ' Models';
+	      }
+	    };
+	
 	    this.state = {
 	      finished: false,
 	      stepIndex: 0
@@ -51426,13 +51521,25 @@
 	  _createClass(ProgressStepper, [{
 	    key: 'renderStepActions',
 	    value: function renderStepActions(step, hold, selection, onClickFunction) {
+	      var _this2 = this;
+	
 	      var stepIndex = this.state.stepIndex;
 	
 	      return _react2['default'].createElement(
 	        'div',
 	        { style: { margin: '12px 0', color: 'white' } },
-	        _react2['default'].createElement(_materialUiRaisedButton2['default'], {
-	          label: stepIndex === 5 ? 'Finish' : 'Next',
+	        this.state.finished ? _react2['default'].createElement(_materialUiRaisedButton2['default'], {
+	          label: 'Reset Enigma',
+	          primary: true,
+	          onTouchTap: function (event) {
+	            event.preventDefault();
+	            _this2.props._resetState();
+	            _this2.setState({ stepIndex: 0, finished: false });
+	          },
+	          style: { marginRight: 12 }
+	        }) : _react2['default'].createElement(_materialUiRaisedButton2['default'], {
+	          id: 'next',
+	          label: stepIndex === 6 ? 'Finish' : 'Next',
 	          disabled: hold,
 	          primary: true,
 	          onTouchTap: this.handleNext.bind(this, selection, onClickFunction),
@@ -51447,34 +51554,19 @@
 	      );
 	    }
 	
-	    // <FlatButton label="Upload Data" icon={<FontIcon className="muidocs-icon-custom-github" />}>
-	    //   <input type="file" style={styles.exampleImageInput} />
-	    // </FlatButton>
 	    // <DataTable
 	    //   items={this.props.columns}
 	    //   selectedDataset={this.props.selectedDataset}/>
 	
-	    // <Step>
-	    //   <StepLabel style={{color: this.state.stepIndex > 1 ? 'rgb(0, 188, 212)' : 'lightgrey'}}>Clean Data</StepLabel>
-	    //   <StepContent>
-	    //     <p>
-	    //     </p>
-	    //     <LongDropDownMenu
-	    //       items={this.props.suggestedModels.sort()}
-	    //       _setAppState={this.props._setAppState}
-	    //       selectedValue={this.props.selectedModel}
-	    //       selectionName='selectedModel'/>
-	    //     {this.renderStepActions(2, (this.props.selectedModel == null ? true : false), 'selectedModel', this.props._runSelectedModels)}
-	    //   </StepContent>
-	    // </Step>
 	  }, {
 	    key: 'componentWillReceiveProps',
 	    value: function componentWillReceiveProps(nextProps) {
 	      if (this.props.table != nextProps.table && nextProps.table != undefined) {
 	        var means = nextProps.table.models.map(function (item, i) {
-	          return nextProps.table[nextProps.table.metrics[0]][i][3];
+	          return nextProps.table[nextProps.table.metrics[1]][i][3];
 	        });
-	        var bestSeedModelScore = Math.max.apply(null, means);
+	        var bestSeedModelScore = null;
+	        nextProps.predictionType == 'Regression' ? bestSeedModelScore = Math.max.apply(null, means) : bestSeedModelScore = Math.max.apply(null, means);
 	        var bestSeedModelTag = nextProps.table.models[means.indexOf(bestSeedModelScore)];
 	        var selectedSeedModel = nextProps.selectedModels[means.indexOf(bestSeedModelScore)];
 	        nextProps._setAppState({ selectedSeedModel: selectedSeedModel });
@@ -51485,19 +51577,12 @@
 	  }, {
 	    key: 'render',
 	    value: function render() {
-	      var _this2 = this;
+	      var _this3 = this;
 	
 	      var _state = this.state;
 	      var finished = _state.finished;
 	      var stepIndex = _state.stepIndex;
 	
-	      // <LongDropDownMenu
-	      //   items={this.props.suggestedModels.sort()}
-	      //   _setAppState={this.props._setAppState}
-	      //   selectedValue={this.props.selectedModel}
-	      //   selectionName='selectedModel'
-	      //   checkboxes={true}/>
-	      // Enigma has preselected the models with less than 75% correlation.
 	      return _react2['default'].createElement(
 	        'div',
 	        { style: {
@@ -51524,10 +51609,18 @@
 	              _react2['default'].createElement(
 	                'p',
 	                null,
-	                'Welcome to Enigma. Please upload a dataset or select a sample data.'
+	                'Welcome to Enigma. Please upload a dataset or select a sample dataset.'
 	              ),
-	              _react2['default'].createElement('form', { encType: 'multipart/form-data', action: '/post_data', method: 'post' }),
+	              _react2['default'].createElement(_materialUiFlatButton2['default'], {
+	                disabled: true,
+	                onClick: function () {
+	                  _this3.props._setAppState({ selectedDataset: '' });
+	                },
+	                label: 'Upload Train Data',
+	                backgroundColor: 'rgba(229, 229, 229, .4)',
+	                icon: _react2['default'].createElement(_materialUiFontIcon2['default'], { className: 'muidocs-icon-file-upload' }) }),
 	              _react2['default'].createElement(_dropdownJs2['default'], {
+	                label: 'Sample Datasets',
 	                items: this.props.sampleDatasets.sort(),
 	                _setAppState: this.props._setAppState,
 	                selectedValue: this.props.selectedDataset,
@@ -51566,8 +51659,8 @@
 	            _react2['default'].createElement(
 	              _materialUiStepper.StepLabel,
 	              { style: { color: this.state.stepIndex > 1 ? 'rgb(0, 188, 212)' : 'lightgrey' } },
-	              'Try Models: ',
-	              this.props.selectedModels.length < 2 ? this.props.selectedModels[0] : this.props.selectedModels.length.toString() + ' Models',
+	              'Try Seed Models: ',
+	              this._step2Label(),
 	              ' '
 	            ),
 	            _react2['default'].createElement(
@@ -51580,12 +51673,18 @@
 	                _react2['default'].createElement(
 	                  'span',
 	                  { style: { color: 'rgba(255, 0, 255, 1)' } },
-	                  this.props.predictionClass,
 	                  ' ',
 	                  this.props.predictionType,
-	                  '. '
+	                  ' '
 	                ),
-	                'There are ',
+	                ' to predict ',
+	                _react2['default'].createElement(
+	                  'span',
+	                  { style: { color: 'rgba(255, 0, 255, 1)' } },
+	                  this.props.predictionClass,
+	                  ' '
+	                ),
+	                ' target values. There are ',
 	                _react2['default'].createElement(
 	                  'span',
 	                  { style: { color: 'rgba(255, 0, 255, 1)' } },
@@ -51641,7 +51740,7 @@
 	                  _react2['default'].createElement(
 	                    'span',
 	                    { style: { color: 'rgba(255, 0, 255, 1)' } },
-	                    this.props.table != undefined ? this.props.table.metrics[0] : '',
+	                    this.props.table != undefined ? this.props.table.metrics[1] : '',
 	                    ' '
 	                  ),
 	                  'score of ',
@@ -51658,7 +51757,7 @@
 	                  _setAppState: this.props._setAppState,
 	                  selectedValue: this.props.selectedSeedModel,
 	                  selectionName: 'selectedSeedModel' }),
-	                _react2['default'].createElement(_selectiontableJs2['default'], {
+	                _react2['default'].createElement(_statstableJs2['default'], {
 	                  type: 'summary',
 	                  table: this.props.table })
 	              ),
@@ -51670,8 +51769,8 @@
 	            null,
 	            _react2['default'].createElement(
 	              _materialUiStepper.StepLabel,
-	              { style: { color: this.state.stepIndex > 2 ? 'rgb(0, 188, 212)' : 'lightgrey' } },
-	              'Create Ensemble: ',
+	              { style: { color: this.state.stepIndex > 3 ? 'rgb(0, 188, 212)' : 'lightgrey' } },
+	              'Select Ensemble Models: ',
 	              this.props.selectedEnsembleModels.length > 0 ? this.props.selectedEnsembleModels.length.toString() + ' Models' : '',
 	              ' '
 	            ),
@@ -51682,7 +51781,7 @@
 	                'div',
 	                { style: { color: 'lightgrey' } },
 	                _react2['default'].createElement(_materialUiCircularProgress2['default'], null),
-	                'Building Models...'
+	                'Fetching Suggestions...'
 	              ) : _react2['default'].createElement(
 	                'div',
 	                null,
@@ -51696,7 +51795,7 @@
 	                    this.props.selectedSeedModel,
 	                    ' '
 	                  ),
-	                  'in order to attempt to prevent correlation among model predictions. Please select low correlated models, less than 75%, to create the stacked ensemble.'
+	                  'to attempt to prevent correlation among model predictions. Enigma has preselected models with complete correlation less than 75%. Please confirm or edit these selections to create the stacked ensemble.'
 	                ),
 	                _react2['default'].createElement(_multidropdownJs2['default'], {
 	                  _setAppState: this.props._setAppState,
@@ -51705,7 +51804,7 @@
 	                  items: this.props.correlation.modelNames,
 	                  selectionName: 'selectedEnsembleModels',
 	                  selections: this.props.selectedEnsembleModels }),
-	                _react2['default'].createElement(_selectiontableJs2['default'], {
+	                _react2['default'].createElement(_statstableJs2['default'], {
 	                  type: 'correlation',
 	                  table: this.props.correlation })
 	              ),
@@ -51717,13 +51816,14 @@
 	            null,
 	            _react2['default'].createElement(
 	              _materialUiStepper.StepLabel,
-	              { style: { color: this.state.stepIndex > 3 ? 'rgb(0, 188, 212)' : 'lightgrey' } },
-	              'Predict New Observations'
+	              { style: { color: this.state.stepIndex > 4 ? 'rgb(0, 188, 212)' : 'lightgrey' } },
+	              'Choose Final Model: ',
+	              this.props.selectedFinalModel !== null ? this.props.selectedFinalModel : ''
 	            ),
 	            _react2['default'].createElement(
 	              _materialUiStepper.StepContent,
 	              null,
-	              this.props.stacked == undefined ? _react2['default'].createElement(
+	              this.props.stackedstats == undefined ? _react2['default'].createElement(
 	                'div',
 	                { style: { color: 'lightgrey' } },
 	                _react2['default'].createElement(_materialUiCircularProgress2['default'], null),
@@ -51734,44 +51834,123 @@
 	                _react2['default'].createElement(
 	                  'p',
 	                  null,
-	                  'The final stacked model has an overall ',
+	                  'The stacked ensemble has a ',
 	                  _react2['default'].createElement(
 	                    'span',
 	                    { style: { color: 'rgba(255, 0, 255, 1)' } },
-	                    this.props.stackedstats
+	                    this.props.stackedstats.columns[2]
 	                  ),
-	                  ' of ',
+	                  ' score of ',
 	                  _react2['default'].createElement(
 	                    'span',
 	                    { style: { color: 'rgba(255, 0, 255, 1)' } },
-	                    this.props.predictionType,
-	                    '.'
+	                    this.props.stackedstats.stats[2],
+	                    ', '
 	                  ),
-	                  'Please input or upload new observations for the model to predict.'
+	                  'which is ',
+	                  _react2['default'].createElement(
+	                    'span',
+	                    { style: { color: 'rgba(255, 0, 255, 1)' } },
+	                    (this.props.stackedstats.stats[2] - this.props.bestSeedModelScore).toFixed(2),
+	                    ' ',
+	                    this.props.stackedstats.stats[2] > this.props.bestSeedModelScore ? 'greater' : 'less',
+	                    ' '
+	                  ),
+	                  ' than ',
+	                  _react2['default'].createElement(
+	                    'span',
+	                    { style: { color: 'rgba(255, 0, 255, 1)' } },
+	                    this.props.bestSeedModelTag,
+	                    '\'s '
+	                  ),
+	                  ' score. Please choose the best seed model or the stacked ensemble. Enigma has preselected the model with the best ',
+	                  _react2['default'].createElement(
+	                    'span',
+	                    { style: { color: 'rgba(255, 0, 255, 1)' } },
+	                    this.props.stackedstats.columns[2],
+	                    ' '
+	                  ),
+	                  ' score.'
 	                ),
-	                _react2['default'].createElement(_selectiontableJs2['default'], {
-	                  type: 'summary',
+	                _react2['default'].createElement(_dropdownJs2['default'], {
+	                  items: [this.props.bestSeedModelTag, 'Stacked Ensemble Model'],
+	                  _setAppState: this.props._setAppState,
+	                  selectedValue: this.props.selectedFinalModel,
+	                  selectionName: 'selectedFinalModel' }),
+	                _react2['default'].createElement(_statstableJs2['default'], {
+	                  type: 'stackedstats',
 	                  table: this.props.stackedstats })
 	              ),
-	              this.renderStepActions(5, this.props.selectedModel == null ? true : false, '', this.props._getPredictions)
+	              this.renderStepActions(5, this.props.selectedFinalModel == null ? true : false, 'selectedFinalModel', null)
+	            )
+	          ),
+	          _react2['default'].createElement(
+	            _materialUiStepper.Step,
+	            null,
+	            _react2['default'].createElement(
+	              _materialUiStepper.StepLabel,
+	              { style: { color: this.state.stepIndex > 4 ? 'rgb(0, 188, 212)' : 'lightgrey' } },
+	              'Predict New Observations:'
+	            ),
+	            _react2['default'].createElement(
+	              _materialUiStepper.StepContent,
+	              null,
+	              this.props.stackedstats != null ? _react2['default'].createElement(
+	                'div',
+	                null,
+	                _react2['default'].createElement(
+	                  'p',
+	                  null,
+	                  'Predict ',
+	                  _react2['default'].createElement(
+	                    'span',
+	                    { style: { color: 'rgba(255, 0, 255, 1)' } },
+	                    this.props.selectedColumn
+	                  ),
+	                  ' for uploaded or inputed observations.'
+	                ),
+	                _react2['default'].createElement(
+	                  _materialUiFlatButton2['default'],
+	                  {
+	                    disabled: true,
+	                    label: 'Upload Test Data',
+	                    backgroundColor: 'rgba(229, 229, 229, .4)',
+	                    icon: _react2['default'].createElement(_materialUiFontIcon2['default'], { className: 'muidocs-icon-file-upload' }) },
+	                  _react2['default'].createElement('input', { id: 'uploadTest', type: 'file', style: styles.exampleImageInput })
+	                ),
+	                _react2['default'].createElement(_materialUiTextField2['default'], {
+	                  id: 'newobservation',
+	                  multiLine: true,
+	                  rows: 3,
+	                  rowsMax: 100,
+	                  onChange: function (event) {
+	                    _this3.setState({ prediction: event.target.value });
+	                  },
+	                  floatingLabelStyle: { color: 'rgb(0, 188, 212)' },
+	                  textareaStyle: { color: 'white' },
+	                  inputStyle: { color: 'white !important' },
+	                  hintStyle: { color: 'lightgrey' },
+	                  hintText: 'Example: [{"Sepal.Length": 5,"Sepal.Width": 3,\t"Petal.Length": 2, "Petal.Width": .3}]',
+	                  floatingLabelText: 'Input Observation'
+	                }),
+	                _react2['default'].createElement(_materialUiRaisedButton2['default'], {
+	                  label: "Predict " + this.props.selectedColumn,
+	                  onClick: this.props._getPredictions.bind(this, this.props.selectedEnsembleModels, this.props.selectedColumn, this.state.prediction, 'input', this.props.selectedFinalModel),
+	                  secondary: true }),
+	                _react2['default'].createElement(
+	                  'p',
+	                  null,
+	                  this.props.predictions !== undefined ? this.props.predicions : ''
+	                ),
+	                this.props.predicitons == undefined ? _react2['default'].createElement('div', null) : _react2['default'].createElement(_statstableJs2['default'], {
+	                  type: 'prediction',
+	                  target: this.props.selectedColumn,
+	                  observations: this.props.observations,
+	                  predictions: this.props.predictions })
+	              ) : _react2['default'].createElement('div', null),
+	              this.renderStepActions(6, this.state.stepIndex == 6 ? true : false, 'selectedFinalModel', this.props._getPredictions)
 	            )
 	          )
-	        ),
-	        finished && _react2['default'].createElement(
-	          'p',
-	          { style: { margin: '20px 0', textAlign: 'center' } },
-	          _react2['default'].createElement(
-	            'a',
-	            {
-	              href: '#',
-	              onClick: function (event) {
-	                event.preventDefault();
-	                _this2.setState({ stepIndex: 0, finished: false });
-	              }
-	            },
-	            'Click here'
-	          ),
-	          ' to reset the example.'
 	        )
 	      );
 	    }
@@ -51784,35 +51963,6 @@
 	})(_react2['default'].Component);
 	
 	exports['default'] = ProgressStepper;
-	
-	// <Step>
-	//   <StepLabel style={{color: this.state.stepIndex > 1 ? 'rgb(0, 188, 212)' : 'lightgrey'}}>Create Ensemble</StepLabel>
-	//   <StepContent>
-	//     <p>
-	//     </p>
-	//     <LongDropDownMenu
-	//       items={this.props.suggestedModels.sort()}
-	//       _setAppState={this.props._setAppState}
-	//       selectedValue={this.props.selectedModel}
-	//       selectionName='selectedModel'/>
-	//     {this.renderStepActions(4, (this.props.selectedModel == null ? true : false), 'selectedModel', this.props._runSelectedModels)}
-	//   </StepContent>
-	// </Step>
-	// <Step>
-	//   <StepLabel style={{color: this.state.stepIndex > 1 ? 'rgb(0, 188, 212)' : 'lightgrey'}}>Predict New Observations</StepLabel>
-	//   <StepContent>
-	//     <p>
-	//       Prediction column requires <span style={{color: 'rgba(255, 0, 255, 1)'}}>{this.props.predictionType}.</span> Data is __ distributed.
-	//       There are <span style={{color: 'rgba(255, 0, 255, 1)'}}>{this.props.observationCount}</span> observations. Please select an suggested model based on these parameters.
-	//     </p>
-	//     <LongDropDownMenu
-	//       items={this.props.suggestedModels.sort()}
-	//       _setAppState={this.props._setAppState}
-	//       selectedValue={this.props.selectedModel}
-	//       selectionName='selectedModel'/>
-	//     {this.renderStepActions(5, (this.props.selectedModel == null ? true : false), 'selectedModel', this.props._runSelectedModels)}
-	//   </StepContent>
-	// </Step>
 	module.exports = exports['default'];
 
 	/* REACT HOT LOADER */ }).call(this); } finally { if (false) { (function () { var foundReactClasses = module.hot.data && module.hot.data.foundReactClasses || false; if (module.exports && module.makeHot) { var makeExportsHot = require("/Users/spencerjames/Documents/NYCDSA/Projects/Capstone/node_modules/react-hot-loader/makeExportsHot.js"); if (makeExportsHot(module, require("react"))) { foundReactClasses = true; } var shouldAcceptModule = true && foundReactClasses; if (shouldAcceptModule) { module.hot.accept(function (err) { if (err) { console.error("Cannot not apply hot update to " + "progressstepper.js" + ": " + err.message); } }); } } module.hot.dispose(function (data) { data.makeHot = module.makeHot; data.foundReactClasses = foundReactClasses; }); })(); } }
@@ -58742,9 +58892,9 @@
 
 /***/ },
 /* 463 */
-/*!******************************************!*\
-  !*** ./app/components/selectiontable.js ***!
-  \******************************************/
+/*!**************************************!*\
+  !*** ./app/components/statstable.js ***!
+  \**************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	/* REACT HOT LOADER */ if (false) { (function () { var ReactHotAPI = require("/Users/spencerjames/Documents/NYCDSA/Projects/Capstone/node_modules/react-hot-loader/node_modules/react-hot-api/modules/index.js"), RootInstanceProvider = require("/Users/spencerjames/Documents/NYCDSA/Projects/Capstone/node_modules/react-hot-loader/RootInstanceProvider.js"), ReactMount = require("react/lib/ReactMount"), React = require("react"); module.makeHot = module.hot.data ? module.hot.data.makeHot : ReactHotAPI(function () { return RootInstanceProvider.getRootInstances(ReactMount); }, React); })(); } try { (function () {
@@ -58784,6 +58934,13 @@
 	    _get(Object.getPrototypeOf(SelectionTable.prototype), 'constructor', this).call(this, props);
 	  }
 	
+	  // {Object.keys(this.props.observations[0]).map( (item, i) => (
+	  //   <TableHeaderColumn key={item} style={{textAlign: 'center', paddingRight: 5, paddingLeft: 5}}>{item}</TableHeaderColumn>
+	  // ))}
+	  // {Object.keys(this.props.observations[i]).values.map( (el, i) => (
+	  //   <TableRowColumn key={el} style={{textAlign: 'center', paddingRight: 5}}>{el}</TableRowColumn>
+	  // ))}
+	
 	  _createClass(SelectionTable, [{
 	    key: 'render',
 	    value: function render() {
@@ -58795,8 +58952,143 @@
 	            position: 'fixed',
 	            right: 20,
 	            top: 30,
-	            width: 550
+	            width: 550,
+	            height: '90%',
+	            overflowY: 'scroll',
+	            overflowX: 'scroll'
 	          } },
+	        this.props.type == 'prediction' ? _react2['default'].createElement(
+	          'div',
+	          null,
+	          _react2['default'].createElement(
+	            _materialUiTable.Table,
+	            {
+	              selectable: false,
+	              style: {
+	                backgroundColor: 'rgba(255,255,255,.3)',
+	                maxHeight: 300,
+	                overflowY: 'scroll'
+	              } },
+	            _react2['default'].createElement(
+	              _materialUiTable.TableHeader,
+	              {
+	                adjustForCheckbox: false,
+	                displaySelectAll: false,
+	                enableSelectAll: false },
+	              _react2['default'].createElement(
+	                _materialUiTable.TableRow,
+	                null,
+	                _react2['default'].createElement(
+	                  _materialUiTable.TableHeaderColumn,
+	                  { colSpan: 2, style: { textAlign: 'center' } },
+	                  'Predictions'
+	                )
+	              ),
+	              _react2['default'].createElement(
+	                _materialUiTable.TableRow,
+	                null,
+	                _react2['default'].createElement(
+	                  _materialUiTable.TableHeaderColumn,
+	                  { key: 'ID', style: { textAlign: 'center', paddingRight: 5 } },
+	                  'ID'
+	                ),
+	                _react2['default'].createElement(
+	                  _materialUiTable.TableHeaderColumn,
+	                  { key: 'target', style: { textAlign: 'center', paddingRight: 5, paddingLeft: 5 } },
+	                  this.props.target
+	                )
+	              )
+	            ),
+	            _react2['default'].createElement(
+	              _materialUiTable.TableBody,
+	              { displayRowCheckbox: false },
+	              this.props.predictions.map(function (prediction, i) {
+	                return _react2['default'].createElement(
+	                  _materialUiTable.TableRow,
+	                  { key: prediction, style: { color: 'lightgrey' } },
+	                  _react2['default'].createElement(
+	                    _materialUiTable.TableRowColumn,
+	                    { key: i, style: { textAlign: 'center', paddingRight: 5 } },
+	                    i
+	                  ),
+	                  _react2['default'].createElement(
+	                    _materialUiTable.TableRowColumn,
+	                    { key: 'prediciton', style: { textAlign: 'center', paddingRight: 5, paddingLeft: 5 } },
+	                    prediction
+	                  )
+	                );
+	              })
+	            )
+	          )
+	        ) : _react2['default'].createElement('div', null),
+	        this.props.type == 'stackedstats' ? _react2['default'].createElement(
+	          'div',
+	          null,
+	          _react2['default'].createElement(
+	            _materialUiTable.Table,
+	            {
+	              selectable: false,
+	              style: {
+	                backgroundColor: 'rgba(255,255,255,.3)',
+	                maxHeight: 300,
+	                overflowY: 'scroll'
+	              } },
+	            _react2['default'].createElement(
+	              _materialUiTable.TableHeader,
+	              {
+	                adjustForCheckbox: false,
+	                displaySelectAll: false,
+	                enableSelectAll: false },
+	              _react2['default'].createElement(
+	                _materialUiTable.TableRow,
+	                null,
+	                _react2['default'].createElement(
+	                  _materialUiTable.TableHeaderColumn,
+	                  { colSpan: this.props.table.columns.length + 1, style: { textAlign: 'center' } },
+	                  this.props.table.metrics[0],
+	                  ' Stacked Ensemble'
+	                )
+	              ),
+	              _react2['default'].createElement(
+	                _materialUiTable.TableRow,
+	                null,
+	                _react2['default'].createElement(
+	                  _materialUiTable.TableHeaderColumn,
+	                  { key: 'Model', style: { textAlign: 'center', paddingRight: 5 } },
+	                  'Model'
+	                ),
+	                this.props.table.columns.map(function (item, i) {
+	                  return _react2['default'].createElement(
+	                    _materialUiTable.TableHeaderColumn,
+	                    { key: item, style: { textAlign: 'center', paddingRight: 5, paddingLeft: 5 } },
+	                    item
+	                  );
+	                })
+	              )
+	            ),
+	            _react2['default'].createElement(
+	              _materialUiTable.TableBody,
+	              { displayRowCheckbox: false },
+	              _react2['default'].createElement(
+	                _materialUiTable.TableRow,
+	                { key: 'stackrow', style: { color: 'lightgrey' } },
+	                _react2['default'].createElement(
+	                  _materialUiTable.TableRowColumn,
+	                  { key: 'Model', style: { textAlign: 'center', paddingRight: 5 } },
+	                  this.props.table.models[0]
+	                ),
+	                this.props.table.stats.map(function (item, i) {
+	                  return _react2['default'].createElement(
+	                    _materialUiTable.TableRowColumn,
+	                    { key: item, style: { textAlign: 'center', paddingRight: 5, paddingLeft: 5 } },
+	                    item
+	                  );
+	                })
+	              )
+	            )
+	          ),
+	          _react2['default'].createElement('div', { id: 'stackplot' })
+	        ) : _react2['default'].createElement('div', null),
 	        this.props.type == 'summary' ? this.props.table.metrics.map(function (metric, i) {
 	          return _react2['default'].createElement(
 	            'div',
@@ -58804,9 +59096,10 @@
 	            _react2['default'].createElement(
 	              _materialUiTable.Table,
 	              {
+	                key: metric,
 	                selectable: false,
 	                style: {
-	                  backgroundColor: 'rgba(255,255,255,.2)',
+	                  backgroundColor: 'rgba(255,255,255,.3)',
 	                  maxHeight: 300,
 	                  overflowY: 'scroll'
 	                } },
@@ -58865,73 +59158,201 @@
 	                })
 	              )
 	            ),
-	            i != _this.props.table.metrics.length ? _react2['default'].createElement(_materialUiDivider2['default'], null) : _react2['default'].createElement('div', null)
+	            i != _this.props.table.metrics.length ? _react2['default'].createElement(_materialUiDivider2['default'], null) : _react2['default'].createElement('div', null),
+	            _react2['default'].createElement('div', { id: 'plot'.concat(metric) })
 	          );
-	        }) : _react2['default'].createElement(
-	          _materialUiTable.Table,
-	          {
-	            selectable: false,
-	            style: {
-	              backgroundColor: 'rgba(255,255,255,.2)',
-	              maxHeight: 300,
-	              overflowY: 'scroll'
-	            } },
+	        }) : _react2['default'].createElement('div', null),
+	        this.props.type == 'correlation' ? _react2['default'].createElement(
+	          'div',
+	          null,
 	          _react2['default'].createElement(
-	            _materialUiTable.TableHeader,
+	            _materialUiTable.Table,
 	            {
-	              adjustForCheckbox: false,
-	              displaySelectAll: false,
-	              enableSelectAll: false },
+	              selectable: false,
+	              style: {
+	                backgroundColor: 'rgba(255,255,255,.3)',
+	                maxHeight: 300,
+	                overflowY: 'scroll'
+	              } },
 	            _react2['default'].createElement(
-	              _materialUiTable.TableRow,
-	              null,
+	              _materialUiTable.TableHeader,
+	              {
+	                adjustForCheckbox: false,
+	                displaySelectAll: false,
+	                enableSelectAll: false },
 	              _react2['default'].createElement(
-	                _materialUiTable.TableHeaderColumn,
-	                { colSpan: this.props.table.columns.length + 1, style: { textAlign: 'center' } },
-	                'Correlation'
-	              )
-	            ),
-	            _react2['default'].createElement(
-	              _materialUiTable.TableRow,
-	              null,
-	              _react2['default'].createElement(
-	                _materialUiTable.TableHeaderColumn,
-	                { key: 'Model', style: { textAlign: 'center', paddingRight: 5 } },
-	                'Model'
-	              ),
-	              this.props.table.columns.map(function (item, i) {
-	                return _react2['default'].createElement(
-	                  _materialUiTable.TableHeaderColumn,
-	                  { key: item, style: { textAlign: 'center', paddingRight: 5, paddingLeft: 5 } },
-	                  item
-	                );
-	              })
-	            )
-	          ),
-	          _react2['default'].createElement(
-	            _materialUiTable.TableBody,
-	            { displayRowCheckbox: false },
-	            this.props.table.correlation.map(function (row, i) {
-	              return _react2['default'].createElement(
 	                _materialUiTable.TableRow,
-	                { key: i, style: { color: 'lightgrey' } },
+	                null,
 	                _react2['default'].createElement(
-	                  _materialUiTable.TableRowColumn,
+	                  _materialUiTable.TableHeaderColumn,
+	                  { colSpan: this.props.table.columns.length + 1, style: { textAlign: 'center' } },
+	                  'Correlation'
+	                )
+	              ),
+	              _react2['default'].createElement(
+	                _materialUiTable.TableRow,
+	                null,
+	                _react2['default'].createElement(
+	                  _materialUiTable.TableHeaderColumn,
 	                  { key: 'Model', style: { textAlign: 'center', paddingRight: 5 } },
-	                  _this.props.table.models[i]
+	                  'Model'
 	                ),
-	                row.map(function (item, i) {
+	                this.props.table.columns.map(function (item, i) {
 	                  return _react2['default'].createElement(
-	                    _materialUiTable.TableRowColumn,
+	                    _materialUiTable.TableHeaderColumn,
 	                    { key: item, style: { textAlign: 'center', paddingRight: 5, paddingLeft: 5 } },
 	                    item
 	                  );
 	                })
-	              );
-	            })
-	          )
-	        )
+	              )
+	            ),
+	            _react2['default'].createElement(
+	              _materialUiTable.TableBody,
+	              { displayRowCheckbox: false },
+	              this.props.table.correlation.map(function (row, i) {
+	                return _react2['default'].createElement(
+	                  _materialUiTable.TableRow,
+	                  { key: i, style: { color: 'lightgrey' } },
+	                  _react2['default'].createElement(
+	                    _materialUiTable.TableRowColumn,
+	                    { key: 'Model', style: { textAlign: 'center', paddingRight: 5 } },
+	                    _this.props.table.models[i]
+	                  ),
+	                  row.map(function (item, i) {
+	                    return _react2['default'].createElement(
+	                      _materialUiTable.TableRowColumn,
+	                      { key: item, style: { textAlign: 'center', paddingRight: 5, paddingLeft: 5 } },
+	                      item
+	                    );
+	                  })
+	                );
+	              })
+	            )
+	          ),
+	          _react2['default'].createElement('div', { id: 'correlationplot' })
+	        ) : _react2['default'].createElement('div', null)
 	      );
+	    }
+	  }, {
+	    key: 'componentDidMount',
+	    value: function componentDidMount() {
+	      var _this2 = this;
+	
+	      var colors = ['#00FFFF', '#3d94ff', '#6e3dff', '#bf29ff', '#FF00FF'];
+	      if (this.props.type == 'stackedstats') {
+	        // var layout = {
+	        //   font: {
+	        //     family: 'Catamaran',
+	        //     color: 'lightgrey'
+	        //   },
+	        //   paper_bgcolor: 'rgba(255,255,255,.3)',
+	        //   plot_bgcolor: 'rgba(255,255,255,.4)',
+	        // };
+	        // this.props.table.metrics.map( (metric, i) => {
+	        //   var data = this.props.table.models.map( (model, j) => {
+	        //     var arr = this.props.table[metric][j]
+	        //     return {
+	        //       x: arr,
+	        //       type: 'box',
+	        //       marker: {color: colors[j]},
+	        //       name: model
+	        //     };
+	        //   })
+	        //   var id = 'plot'.concat(metric)
+	        //   Plotly.newPlot(id, data, layout);
+	        // })
+	      }
+	      if (this.props.type == 'summary') {
+	        var layout = {
+	          font: {
+	            family: 'Catamaran',
+	            color: 'lightgrey'
+	          },
+	          paper_bgcolor: 'rgba(255,255,255,.3)',
+	          plot_bgcolor: 'rgba(255,255,255,.4)'
+	        };
+	        this.props.table.metrics.map(function (metric, i) {
+	          var data = _this2.props.table.models.map(function (model, j) {
+	            var arr = _this2.props.table[metric][j];
+	            arr.pop();
+	            return {
+	              x: arr,
+	              type: 'box',
+	              marker: { color: colors[j] },
+	              name: model
+	            };
+	          });
+	          var id = 'plot'.concat(metric);
+	          Plotly.newPlot(id, data, layout);
+	        });
+	      }
+	      if (this.props.type == 'correlation') {
+	        var xValues = Array.prototype.slice.call(this.props.table.models);
+	
+	        var yValues = Array.prototype.slice.call(this.props.table.models);
+	        yValues.reverse();
+	
+	        var zValues = Array.prototype.slice.call(this.props.table.correlation);
+	        zValues.reverse();
+	
+	        var colorscaleValue = [[0, '#00FFFF'], [1, '#6e3dff']];
+	
+	        var data = [{
+	          x: xValues,
+	          y: yValues,
+	          z: zValues,
+	          type: 'heatmap',
+	          colorscale: colorscaleValue,
+	          showscale: false
+	        }];
+	
+	        var layout = {
+	          font: {
+	            family: 'Catamaran',
+	            color: 'lightgrey'
+	          },
+	          paper_bgcolor: 'rgba(255,255,255,.3)',
+	          plot_bgcolor: 'rgba(255,255,255,.4)',
+	          annotations: [],
+	          xaxis: {
+	            ticks: '',
+	            side: 'top'
+	          },
+	          yaxis: {
+	            ticks: '',
+	            ticksuffix: ' '
+	          }
+	        };
+	
+	        for (var i = 0; i < yValues.length; i++) {
+	          for (var j = 0; j < xValues.length; j++) {
+	            var currentValue = zValues[i][j];
+	            if (currentValue != 0.0) {
+	              var textColor = 'black';
+	            } else {
+	              var textColor = 'black';
+	            }
+	            var result = {
+	              xref: 'x1',
+	              yref: 'y1',
+	              x: xValues[j],
+	              y: yValues[i],
+	              text: zValues[i][j],
+	              font: {
+	                size: 12,
+	                color: 'lightgrey'
+	              },
+	              showarrow: false,
+	              font: {
+	                color: textColor
+	              }
+	            };
+	            layout.annotations.push(result);
+	          }
+	        }
+	        var id = 'correlationplot';
+	        Plotly.newPlot(id, data, layout);
+	      }
 	    }
 	  }]);
 	
@@ -58941,7 +59362,7 @@
 	exports['default'] = SelectionTable;
 	module.exports = exports['default'];
 
-	/* REACT HOT LOADER */ }).call(this); } finally { if (false) { (function () { var foundReactClasses = module.hot.data && module.hot.data.foundReactClasses || false; if (module.exports && module.makeHot) { var makeExportsHot = require("/Users/spencerjames/Documents/NYCDSA/Projects/Capstone/node_modules/react-hot-loader/makeExportsHot.js"); if (makeExportsHot(module, require("react"))) { foundReactClasses = true; } var shouldAcceptModule = true && foundReactClasses; if (shouldAcceptModule) { module.hot.accept(function (err) { if (err) { console.error("Cannot not apply hot update to " + "selectiontable.js" + ": " + err.message); } }); } } module.hot.dispose(function (data) { data.makeHot = module.makeHot; data.foundReactClasses = foundReactClasses; }); })(); } }
+	/* REACT HOT LOADER */ }).call(this); } finally { if (false) { (function () { var foundReactClasses = module.hot.data && module.hot.data.foundReactClasses || false; if (module.exports && module.makeHot) { var makeExportsHot = require("/Users/spencerjames/Documents/NYCDSA/Projects/Capstone/node_modules/react-hot-loader/makeExportsHot.js"); if (makeExportsHot(module, require("react"))) { foundReactClasses = true; } var shouldAcceptModule = true && foundReactClasses; if (shouldAcceptModule) { module.hot.accept(function (err) { if (err) { console.error("Cannot not apply hot update to " + "statstable.js" + ": " + err.message); } }); } } module.hot.dispose(function (data) { data.makeHot = module.makeHot; data.foundReactClasses = foundReactClasses; }); })(); } }
 
 /***/ },
 /* 464 */
@@ -58992,28 +59413,38 @@
 	    key: 'componentWillReceiveProps',
 	    value: function componentWillReceiveProps(nextProps) {
 	      // if (this.props.suggestedModels !== nextProps.suggestedModels) {
-	      //   this._createNetwork('suggestedModels')
+	      //   // console.log(this.state.renderer.graph())
+	      //   // // this.state.renderer.graph().forEachLinkedNode('hello', (linkedNode, link) => {
+	      //   // //   console.log(link)
+	      //   // //   this.state.renderer.graph().removeLink(link);
+	      //   // // });
+	      //   //
+	      //   var categories =[]
+	      //   for (var category in this.props.models[0]) {
+	      //     if (category !== 'Model' && category !== 'Tag') {
+	      //       categories.push(category)
+	      //     }
+	      //   }
+	      //   //
+	      //   this.state.renderer.forEachNode( (nodeUI) => {
+	      //     if (nextProps.suggestedModels.indexOf(nodeUI.id) == -1 && categories.indexOf(nodeUI.id) == -1) {
+	      //       this.state.renderer.graph().forEachLinkedNode(nodeUI.id, (linkedNode, link) => {
+	      //         this.state.renderer.graph().removeLink(link);
+	      //       });
+	      //       // this.state.renderer.graph().removeNode(nodeUI.id)
+	      //       // nodeUI.data = 'hidden'
+	      //       // nodeUI.color = 0x2F4F4F
+	      //         // this.state.renderer.graph().removeNode(nodeUI.id)
+	      //     }
+	      //   });
+	      //   // // //
+	      //   // this.state.renderer.forEachLink( (linkUI, i) => {
+	      //   //   if (nextProps.suggestedModels.indexOf(linkUI.from.id) == -1) {
+	      //   //     linkUI.toColor = 0x2F4F4F
+	      //   //     linkUI.fromColor = 0x2F4F4F
+	      //   //   }
+	      //   // });
 	      // }
-	      var categories = [];
-	      for (var category in this.props.models[0]) {
-	        if (category !== 'Model' && category !== 'Tag') {
-	          categories.push(category);
-	        }
-	      }
-	      this.state.renderer.forEachNode(function (nodeUI) {
-	        if (nextProps.suggestedModels.indexOf(nodeUI.id) == -1) {
-	          // nodeUI.data = 'hidden'
-	          nodeUI.color = 0x2F4F4F;
-	          // this.state.renderer.graph().removeNode(nodeUI.id)
-	        }
-	      });
-	      this.state.renderer.forEachLink(function (linkUI) {
-	        if (nextProps.suggestedModels.indexOf(linkUI.from.id) == -1 && categories.indexOf(linkUI.from.id) == -1) {
-	          linkUI.toColor = 0x2F4F4F;
-	          linkUI.fromColor = 0x2F4F4F;
-	          // this.state.renderer.graph().removeLink(linkUI.to.id)
-	        }
-	      });
 	    }
 	  }, {
 	    key: 'render',
@@ -59023,7 +59454,11 @@
 	  }, {
 	    key: 'componentDidMount',
 	    value: function componentDidMount() {
-	      this._createNetwork('models');
+	      if (this.props.suggestedModels.length > 0) {
+	        this._createNetwork('suggestedModels');
+	      } else {
+	        this._createNetwork('models');
+	      }
 	    }
 	  }, {
 	    key: '_createNetwork',
@@ -59049,14 +59484,18 @@
 	      var renderGraph = __webpack_require__(/*! ngraph.pixel */ 467);
 	      var renderer = renderGraph(graph, {
 	        link: function link(_link) {
-	          if (_link.data === 'hidden') return; // don't need to render!
+	          if (_link.data === 'hidden') {
+	            return;
+	          } // don't need to render!
 	          return {
 	            fromColor: 0xFF00FF,
 	            toColor: 0x00FFFF
 	          };
 	        },
 	        node: function node(_node) {
-	          if (_node.data === 'hidden') return; // don't need to render!
+	          if (_node.data === 'hidden') {
+	            return;
+	          } // don't need to render!
 	          return {
 	            color: 0xFF00FF,
 	            size: 100
@@ -59080,6 +59519,31 @@
 	          nodeUI.size = 250; // update size
 	        }
 	      }
+	      // var createSettingsView = require('config.pixel');
+	      // var createLegend = require('edgelegend');
+	      // var settings = createSettingsView(renderer);
+	      // settings.remove(['View Settings', 'Layout Settings']);
+	      //
+	      // createLegend(settings, 'Groups', [{
+	      //   name: 'First',
+	      //   color: 0xff0000,
+	      //   filter: function (link) { return link.fromId; }
+	      // }, {
+	      //   name: 'Second',
+	      //   color: 0x00ff00,
+	      //   filter: function(link) {
+	      //     return
+	      //     // return 33 < link.fromId && link.fromId <= 66;
+	      //   }
+	      // },{
+	      //   name: 'Third',
+	      //   color: 0x0000ff,
+	      //   filter: function(link) {
+	      //     return link
+	      //     // return 66 < link.fromId;
+	      //   }
+	      // }
+	      // ]);
 	
 	      renderer.on('nodeclick', function (node) {
 	        console.log('Clicked on ' + JSON.stringify(node));

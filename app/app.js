@@ -16,7 +16,6 @@ import ProgressStepper from './components/progressstepper.js'
 import DataTable from './components/datatable.js'
 import NetworkGraph from './components/networkgraph.js'
 import InfoPane from './components/infopane.js'
-import SelectionTable from './components/selectiontable.js'
 // import Network from './components/network.js'
 // Main app
 class App extends React.Component {
@@ -38,7 +37,9 @@ class App extends React.Component {
           bestSeedModelScore: null,
           selectedSeedModel: null,
           suggestedEnsembleModels: [],
-          selectedEnsembleModels: []
+          selectedEnsembleModels: [],
+          selectedFinalModel: [],
+          observations: null
         }
     }
     componentWillMount () {
@@ -54,7 +55,7 @@ class App extends React.Component {
             <MuiThemeProvider muiTheme={getMuiTheme()}>
               <div>
                 {this.state.loading ?
-                  <div style={{position: 'fixed', top: 20, right: 30}}>
+                  <div style={{position: 'fixed', top: 25, right: 30}}>
                     <h4 style={{position: 'absolute', right: 20, width: 150, color: 'darkgrey'}}>
                       Loading...
                     </h4>
@@ -66,6 +67,8 @@ class App extends React.Component {
                 <ProgressStepper
                   _setAppState={this._setAppState}
                   _updateAppState={this._updateAppState}
+                  _resetState={this._resetState}
+                  _uploadData={this._uploadData}
                   _getSampleData={this._getSampleData}
                   _getSuggestedModels={this._getSuggestedModels}
                   _runSelectedModels={this._runSelectedModels}
@@ -101,6 +104,9 @@ class App extends React.Component {
         this.setState(state)
       }
     }
+    _resetState = () => {
+      this.setState(this.getInitialState());
+    }
     _getModels () {
       $.ajax({
         url:'/getModels',
@@ -116,6 +122,32 @@ class App extends React.Component {
             this.setState({sampleDatasets: JSON.parse(response)});
         }
       })
+    }
+    _uploadData = (data, test) => {
+      // console.log(data)
+      // $.ajax({
+      //   url:'/uploadData',
+      //   data: {
+      //     data: data,
+      //     test: test
+      //   },
+      //   xhr: function() {  // Custom XMLHttpRequest
+      //       var myXhr = $.ajaxSettings.xhr();
+      //       if(myXhr.upload){ // Check if upload property exists
+      //           myXhr.upload.addEventListener('progress',progressHandlingFunction, false); // For handling the progress of the upload
+      //       }
+      //       return myXhr;
+      //   },
+      //   async: false,
+      //   cache: false,
+      //   method: 'POST',
+      //   contentType: false,
+      //   processData: false,
+      //   success: response => {
+      //     console.log('Upload success')
+      //       // this.setState({: JSON.parse(response)});
+      //   }
+      // })
     }
     _getSampleData = (value) => {
       $.ajax({
@@ -150,8 +182,10 @@ class App extends React.Component {
         },
         success: response => {
           response = JSON.parse(response)
+          response = JSON.parse(response)
+          response.columns.pop()
           var obj = this.state
-          var newObj = update(obj, {table: {$set: JSON.parse(response)}});
+          var newObj = update(obj, {table: {$set: response}});
           this.setState(newObj)
           this.setState({loading: false})
         }
@@ -169,37 +203,90 @@ class App extends React.Component {
         },
         success: response => {
           response = JSON.parse(response)
+          response = JSON.parse(response)
           var obj = this.state
-          var newObj = update(obj, {correlation: {$set: JSON.parse(response)}});
+          var newObj = update(obj, {correlation: {$set: response}});
           this.setState(newObj)
           this.setState({loading: false})
+
+          //preselect all mdoels < .75
+          Array.prototype.lessThan = function(val) {
+              var i = this.length;
+              while (i--) {
+                  if (Math.abs(this[i]) > val) {
+                      return false;
+                  }
+              }
+              return true;
+          }
+          var selectedEnsembleModels = []
+          var items = Array.prototype.slice.call(response.correlation)
+          items.forEach( (item, i) => {
+            var arr = Array.prototype.slice.call(item)
+            var index = arr.indexOf(1);
+            arr.splice(index, 1)
+            if (arr.lessThan(.75)) {
+              selectedEnsembleModels.push(response.modelNames[i])
+            }
+          }.bind(response))
+          this.setState({selectedEnsembleModels: selectedEnsembleModels})
         }
       })
     }
-    _createStackedEnsemble = (models) => {
+    _createStackedEnsemble = (models, target) => {
       this.setState({loading: true})
       $.ajax({
         url:'/createStackedEnsemble',
         data: {
-          models: models.length > 1 ? models.join('&'): models
+          models: models.length > 1 ? models.join('&'): models,
+          target: target
         },
         success: response => {
-          response = JSON.parse(response)
-          console.log(JSON.parse(response))
-          var obj = this.state
-          var newObj = update(obj, {stackedstats: {$set: JSON.parse(response)}});
-          this.setState(newObj)
           this.setState({loading: false})
+          response = JSON.parse(response)
+          response = JSON.parse(response)
+          var vals = Object.keys(response.stats[0]).map(function(key) {
+              return response.stats[0][key];
+          });
+          response.stats = vals
+          // set finalSelectedModel
+          if (this.state.predictionType == 'Regression') {
+            if (response.stats[2] > this.state.bestSeedModelScore) {
+              this.setState({selectedFinalModel: this.state.bestSeedModelTag})
+            } else {
+              this.setState({selectedFinalModel: response.stats[2]})
+            }
+          } else {
+            if (response.stats[2] > this.state.bestSeedModelScore) {
+              this.setState({selectedFinalModel: response.stats[2]})
+            } else {
+              this.setState({selectedFinalModel: this.state.bestSeedModelTag})
+            }
+          }
+          var obj = this.state
+          var newObj = update(obj, {stackedstats: {$set:  response}});
+          this.setState(newObj)
         }
       })
     }
-    _getPredictions = (observations) => {
+    _getPredictions = (models, target, newdata, type, model) => {
+      this.setState({loading: true})
+      this.setState({observations: JSON.parse(newdata)})
       $.ajax({
         url:'/getPredictions',
-        data: { observations: observations },
+        data: {
+          models: models.length > 1 ? models.join('&'): models,
+          target: target,
+          newdata: newdata,
+          type: type,
+          model: model
+        },
         success: response => {
-            // this.setState({models: response});
-            console.log(JSON.parse(response))
+            response = JSON.parse(response)
+            response = JSON.parse(response)
+            console.log(response)
+            this.setState({loading: false})
+            this.setState({predictions: response[0]});
         }
       })
     }

@@ -2,8 +2,6 @@ library(caret)
 library(caretEnsemble)
 library(jsonlite)
 
-BEST_MODEL = NULL
-
 loadDependencies <- function (method) {
   requiredLibraries <- getModelInfo(method, regex = FALSE)[[1]]$library
   for (x in as.list(requiredLibraries)) {
@@ -82,11 +80,6 @@ getEnsembleSuggestions <- function ( data, model, target, type) {
   correlation <- modelCor(results)
   summary <- summary(results)
 
-  # sums <- lapply(correlation, sum)
-  # max <- which(sums==max(sums))
-  # x <- correlation[apply(correlation[, -1], MARGIN = 1, function(x) all(x > .75)), ]
-  # y <- apply(x[, -1], MARGIN = 1, function(x) all(x > .75))
-
   methods <- unlist(strsplit(gsub("\\[|\\]", "", suggestedMethodNames), split=","))
 
   return(toJSON(list(
@@ -99,7 +92,6 @@ getEnsembleSuggestions <- function ( data, model, target, type) {
 }
 
 createStackedEnsemble <- function (data, methods, target) {
-  print(methods)
   methods <- unlist(strsplit(methods, split='&'))
   removeParens <- function (method) { return(gsub(".*\\((.*)\\).*", "\\1", method))}
   methods <- lapply(methods, removeParens)
@@ -108,24 +100,47 @@ createStackedEnsemble <- function (data, methods, target) {
     loadDependencies(method)
   }
 
-  print(methods)
-  # target <- as.formula(paste(target, "~ ."))
-  #
-  # control <- trainControl(method="repeatedcv", number=5, repeats=3, savePredictions=TRUE, classProbs=TRUE)
-  # models <- caretList(target, data=data, trControl=control, methodList=methods)
-  #
-  # stackControl <- trainControl(method="repeatedcv", number=10, repeats=3, savePredictions=TRUE, classProbs=TRUE)
-  # stack <- caretStack(models, method="rf", metric="Accuracy", trControl=stackControl)
-  # results <- resamples(stack)
-  # summary <- summary(results)
-  # summary$statistics[['models']] = summary$methods
-  # summary$statistics[['metrics']] = summary$metrics
-  # summary$statistics[['columns']] = names(data.frame(summary$statistics[[1]]))
-  # return(toJSON(summary$statistics))
-  return('TEST')
+  target <- as.formula(paste(target, "~ ."))
+
+  control <- trainControl(method="repeatedcv", number=5, repeats=3, savePredictions=TRUE, classProbs=TRUE)
+  models <- caretList(target, data=data, trControl=control, methodList=methods)
+  control2 <- trainControl(method="repeatedcv", number=5, repeats=3, savePredictions=TRUE, classProbs=TRUE)
+  stack <- caretStack(models, method="rf", trControl=control2)
+  summary <- summary(stack)
+
+  # add section for model importance
+  #  ROC curve for stackedmodel
+  return(toJSON(list(
+    metrics = stack$ens_model$modelInfo$label,
+    models = stack$ens_model$method,
+    columns = names(data.frame(stack$error)),
+    stats = stack$error
+  )))
 }
 
-getPredictions <- function (test) {
-  predictions <- predict(BEST_MODEL, newdata = head(test))
-  return(predictions)
+getPredictions <- function (data, methods, target, newdata, type, model) {
+  if (type == 'input') {
+    newdata <- URLdecode(newdata)
+    newdata <- gsub("[\r\n\t]", "", newdata)
+    newdata <- fromJSON(newdata)
+  }
+  if (model == 'Stacked Ensemble Model') {
+    methods <- unlist(strsplit(methods, split='&'))
+    removeParens <- function (method) { return(gsub(".*\\((.*)\\).*", "\\1", method))}
+    methods <- lapply(methods, removeParens)
+
+    for (method in methods) {
+      loadDependencies(method)
+    }
+
+    target <- as.formula(paste(target, "~ ."))
+
+    control <- trainControl(method="repeatedcv", number=5, repeats=3, savePredictions=TRUE, classProbs=TRUE)
+    models <- caretList(target, data=data, trControl=control, methodList=methods)
+    control2 <- trainControl(method="repeatedcv", number=5, repeats=3, savePredictions=TRUE, classProbs=TRUE)
+    stack <- caretStack(models, method="rf", trControl=control2)
+    method <- stack
+  }
+  predictions <- predict(method, newdata)
+  return(toJSON(list(predictions)))
 }

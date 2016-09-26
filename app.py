@@ -37,8 +37,6 @@ f.close()
 #models
 models = pandas.read_csv('./data/tag_data.csv', sep=',')
 DATA = None;
-best_model = None;
-
 
 app = Flask(__name__)
 
@@ -55,6 +53,28 @@ def getModels():
 @app.route("/getSampleDatasets")
 def getSampleDatasets():
     return(json.dumps(data(rpackages.datasets).names()))
+
+# @app.route("/uploadData", methods=['GET', 'POST'])
+# def uploadData():
+    # data = request.args['data']
+    # print(data)
+    # # check if the post request has the file part
+    # if 'file' not in request.files:
+    #     flash('No file part')
+    # file = request.files['file']
+    # # if user does not select file, browser also
+    # # submit a empty part without filename
+    # if file.filename == '':
+    #     flash('No selected file')
+    #
+    # filename = secure_filename(file.filename)
+    # file.save(os.path.join('./uploaded', filename))
+    # global DATA   # Needed to modify global copy of DATA
+    # DATA = pandas.read_csv(data, sep=',')
+    # columns = DATA.columns.values.tolist()
+    # return(json.dumps(columns))
+
+
 
 @app.route("/getSampleData")
 def getSampleData():
@@ -112,13 +132,23 @@ def createStackedEnsemble():
 @app.route("/getPredictions")
 def getPredictions():
     getPredictions = ro.r('getPredictions')
-    predictions = getPredictions(DATA[30])
-    print(predictions)
+    predictions = getPredictions(pandas2ri.py2ri(DATA), request.args['models'], request.args['target'], request.args['newdata'], request.args['type'], request.args['model'])
     return(json.dumps(str(predictions)))
+
+@app.route("/downloadPredictions")
+def getPlotCSV():
+    # with open("outputs/Adjacency.csv") as fp:
+    #     csv = fp.read()
+    csv = '1,2,3\n4,5,6\n'
+    return Response(
+        csv,
+        mimetype="text/csv",
+        headers={"Content-disposition":
+                 "attachment; filename=myplot.csv"})
 
 # run server
 if __name__ == "__main__":
     server = Server(app.wsgi_app)
     # watch for changes on the bundle.js file in static
     server.watch('static/**')
-    server.serve(7999)
+    server.serve(8888)
